@@ -195,6 +195,42 @@ public class SignLoader {
 		return pointList;
 	}
 	
+	private boolean isCirclePattern(BufferedImage im, int x, int y, double size) {
+		// 考察点与中心点的距离
+		// 分别为中心黑圆内、白环中央、黑环中央
+		double[] distances = {
+			1, 2, 3
+		};
+		// 考察点的坐标值比例，以勾三股四弦五取8个点
+		double[] xs = {
+			0.8, 0.6, 
+			-0.6, -0.8,
+			-0.8, -0.6,
+			0.6, 0.8
+		};
+		double[] ys = {
+			0.6, 0.8,
+			0.8, 0.6,
+			-0.6, -0.8,
+			-0.8, -0.6
+		};
+		
+		boolean isBlack = true;
+		for (double distance : distances) {
+			for (int i = 0; i < xs.length; i++) {
+				double cx = x + distance * size * xs[i];
+				double cy = y + distance * size * ys[i];
+				int color = im.getRGB(Math.round((float) cx), Math.round((float) cy)) & 0x00ffffff;
+				if ((color == 0) != isBlack) {
+					return false;
+				}
+			}
+			isBlack = !isBlack;
+		}
+		
+		return true;
+	}
+	
 	/**
 	 * 检查指定点是否有效。有时临近的点都会符合模式匹配结果，此函数用以判断发现的点是否与已找到的点过分接近。
 	 * @param p 待检查点
@@ -275,7 +311,7 @@ public class SignLoader {
             // 计算中心点Y坐标
 			int py = (yu + yd) / 2;
 			Point p = new Point(px, py);
-			if (this.isValidPoint(p, list, totalFinderSize, yd - yu)) {
+			if (this.isCirclePattern(im, px, py, mSize) && this.isValidPoint(p, list, totalFinderSize, yd - yu)) {
 				return p;
 			}
 		}
