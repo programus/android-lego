@@ -1,7 +1,6 @@
 package org.programus.android.imagerecognitiontest;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 import android.app.Activity;
@@ -13,7 +12,6 @@ import android.graphics.Color;
 import android.graphics.ImageFormat;
 import android.graphics.Paint;
 import android.graphics.Point;
-import android.graphics.PointF;
 import android.hardware.Camera;
 import android.os.Bundle;
 import android.util.Log;
@@ -28,7 +26,6 @@ import android.widget.TextView;
 
 public class MainActivity extends Activity {
 	
-	private final static double SQRT_2 = Math.sqrt(2);
 	private final static int CORNER_COUNT = 4;
 	
 	private Camera mCamera;
@@ -46,10 +43,10 @@ public class MainActivity extends Activity {
 	
 	private byte[] mPatternData;
 	
-	private Bitmap mCalibratePattern;
-	
 	private boolean mTakingPic;
 	private boolean mFocused;
+	
+	private SignDetector mSignLoader = new SignDetector(3);
 	
 	private SurfaceHolder.Callback holderCallback = new SurfaceHolder.Callback() {
 		
@@ -79,12 +76,9 @@ public class MainActivity extends Activity {
 		public void onPreviewFrame(byte[] data, Camera camera) {
 			byte[] monoData = getMonoImageData(data, mCamSize.width, mCamSize.height);
 			Bitmap bmp = getMonoImage(monoData, mCamSize.width, mCamSize.height);
-			drawMonoImage(bmp);
-			List<Point> corners = getCorners(monoData, mCamSize.width, mCamSize.height, 20, 2);
-			if (corners != null) {
-				Log.d("CORNER", corners.toString());
-				drawCorners(corners);
-			}
+			List<Point> corners = mSignLoader.findPattern(monoData, mCamSize.width, mCamSize.height, 0, 0);
+			// List<Point> corners = getCorners(monoData, mCamSize.width, mCamSize.height, 20, 2);
+			drawMonoImage(bmp, corners);
 			if (mTakingPic && mFocused) {
 				capturePattern(monoData, bmp);
 				mTakingPic = false;
@@ -110,244 +104,6 @@ public class MainActivity extends Activity {
 			}
 		}
 	};
-	
-	private Bitmap getCalibrateBm(int r) {
-		Bitmap bm = Bitmap.createBitmap((r + 1) * 2, (r + 1) * 2, Bitmap.Config.ARGB_8888);
-		Canvas canvas = new Canvas(bm);
-		canvas.drawColor(Color.WHITE);
-		Paint paint = new Paint();
-		paint.setStyle(Paint.Style.FILL);
-		paint.setColor(Color.BLACK);
-		canvas.drawCircle(r + 1, r + 1, r, paint);
-		
-		return bm;
-	}
-	
-	private List<Point> getCorners(byte[] data, int w, int h, int size, int tolerance, Bitmap calibrate) {
-		int[] cal = new int[calibrate.getWidth() * calibrate.getHeight()];
-		calibrate.getPixels(cal, 0, calibrate.getWidth(), 0, 0, calibrate.getWidth(), calibrate.getHeight());
-		List<Point> list = new ArrayList<Point>(CORNER_COUNT);
-		int stepX = 1;
-		int stepY = 1;
-		for (int y = 0; y < h; y += stepY) {
-			for (int x = 0; x < w; x += stepX) {
-				stepX = stepY = 1;
-				if (match(data, x, y, w, h, cal, calibrate.getWidth(), calibrate.getHeight())) {
-					int px = x + calibrate.getWidth() / 2;
-					int py = y + calibrate.getHeight() / 2;
-					list.add(new Point(px, py));
-					stepX = calibrate.getWidth();
-					stepY = calibrate.getHeight();
-				}
-			}
-		}
-		return list.size() == CORNER_COUNT ? list : null;
-	}
-	
-	private boolean match(byte[] data, int x, int y, int w, int h, int[] cal, int cw, int ch) {
-		int[] res = new int[cal.length];
-		for (int cy = 0; cy < ch; cy++) {
-			for (int cx = 0; cx < cw; cx++) {
-				int d = this.getPixel(data, x + cx, y + cy, w, h) & 0xff;
-				int index = cx + cy * cw;
-				res[index] = cal[index] ^ d;
-			}
-		}
-		int r = cw / 2 - 1;
-		for (int cy = r / 4; cy < r - r / 4; cy++) {
-			for (int cx = r / 4; cx < r - r / 4; cx++) {
-				if (res[cx + cy * cw] != 0) {
-					return false;
-				}
-			}
-		}
-		int[] indice = new int[] {
-			1 + cw, 
-			2 * cw - 2,
-			1 + cw * (ch - 2), 
-			(ch - 1) * cw - 2
-		};
-		for (int index : indice) {
-			if (res[index] != 0) {
-				return false;
-			}
-		}
-		return true;
-	}
-	
-	private List<Point> getCorners(byte[] data, int w, int h, int size, int tolerance) {
-		List<Point> list = new ArrayList<Point>(CORNER_COUNT);
-		int stepX = 1;
-		int stepY = 1;
-		Log.d("CORNER", "====");
-//		for (int y = 0; y < h; y += stepY) {
-//			stepY = 1;
-//			for (int x = 0; x < w; x += stepX) {
-//				if (this.isCalibratePoint(data, x, y, w, h, size, tolerance)) {
-//					list.add(new Point(x, y));
-//					stepX = size;
-//				}
-//			}
-//		}
-
-		int r = size / 2;
-		for (int y = r; y < h - r; y += stepY) {
-			int countB = 0;
-			int countW = 0;
-			stepY = 1;
-			for (int x = r; x < w - r; x += stepX) {
-				int p = data[x + w * y];
-				stepX = 1;
-				if (p == 0) {
-					countB++;
-				} else {
-					if (countB > 0) {
-                        Log.d("CORNER", String.format("B->W: (%d, %d)/%d", x - countB / 2, y, countB));
-					}
-					if (Math.abs(countB - size) < tolerance){
-                        int px = x - countB / 2;
-                        int py = y;
-                        Log.d("CORNER", String.format("Candidate: %d, %d", px, py));
-                        if (this.isCalibratePoint(data, px, py, w, h, size, tolerance)) {
-                            list.add(new Point(px, py));
-                            stepX = size;
-                        }
-					}
-					if (countB > 0) {
-						countW = 0;
-					}
-					countB = 0;
-					countW++;
-				}
-			}
-		}
-		return list.size() > 0 ? list : null;
-	}
-	
-	private boolean isCalibratePoint(byte[] data, int x, int y, int w, int h, int size, int tolerance) {
-		float r = size / 2.0f;
-		PointF[] ps = new PointF[] {
-			new PointF(-1, 0),
-			new PointF(1, 0),
-			new PointF(0, -1),
-			new PointF(0, 1),
-			new PointF(-0.8f, -0.6f),
-			new PointF(-0.8f, 0.6f),
-			new PointF(0.8f, -0.6f),
-			new PointF(0.8f, 0.6f),
-			new PointF(-0.6f, -0.8f),
-			new PointF(-0.6f, 0.8f),
-			new PointF(0.6f, -0.8f),
-			new PointF(0.6f, 0.8f),
-		};
-		
-		StringBuilder sb = new StringBuilder(size * 2 + 3);
-		Log.d("CORNER", "Data:");
-		sb.append(" ");
-		for (int xx = x - size; xx < x + size; xx++) {
-			int v = Math.abs(xx - x);
-			sb.append(v % 10);
-//			sb.append((char)(v > 9 ? v - 10 + 'A' : v + '0'));
-		}
-		Log.d("CORNER", sb.toString());
-		sb.delete(0, sb.length());
-		for (int yy = y - size; yy < y + size; yy++) {
-			int v = Math.abs(yy - y);
-			sb.append(v % 10);
-//			sb.append((char)(v > 9 ? v - 10 + 'A' : v + '0'));
-            for (int xx = x - size; xx < x + size; xx++) {
-				byte d = this.getPixel(data, xx, yy, w, h);
-				sb.append(d == 0 ? "0" : "X");
-			}
-            Log.d("CORNER", sb.toString());
-            sb.delete(0, sb.length());
-		}
-		
-		for (PointF p : ps) {
-			int px = (int) (x + (r - tolerance) * p.x);
-			int py = (int) (y + (r - tolerance) * p.y);
-			int pd = this.getPixel(data, px, py, w, h);
-			Log.d("CORNER", String.format("I: (%d, %d).(%f, %f).(%d, %d) -> %d", 
-					px, py, p.x, p.y, (int)((r - tolerance) * p.x), (int)((r - tolerance) * p.y), pd));
-			if (pd != 0) {
-				return false;
-			}
-			
-			int ox = (int) (x + (r + tolerance) * p.x);
-			int oy = (int) (y + (r + tolerance) * p.y);
-			int od = this.getPixel(data, ox, oy, w, h);
-			Log.d("CORNER", String.format("O: (%d, %d).(%f, %f).(%d, %d) -> %d", 
-					ox, oy, p.x, p.y, (int)((r + tolerance) * p.x), (int)((r + tolerance) * p.y), od));
-			if (od == 0) {
-				return false;
-			}
-		}
-		
-		return true;
-	}
-	
-//	private boolean isCalibratePoint(byte[] data, int x, int y, int w, int h, int size, int tolerance) {
-//		int countYu = 0;
-//		int countYd = 0;
-//		int count13 = 0;
-//		int count24 = 0;
-//		int max = size + tolerance;
-//		double sizeX = size / SQRT_2;
-//		for (int i = 0; i < max; i++) {
-//			if (this.getPixel(data, x, y - i, w, h) == 0) {
-//				countYu++;
-//			} else {
-//				break;
-//			}
-//		}
-//		for (int i = 0; i < max; i++) {
-//			if (this.getPixel(data, x, y + i, w, h) == 0) {
-//				countYd++;
-//			} else {
-//				break;
-//			}
-//		}
-//		if (Math.abs(countYu - countYd) > tolerance || Math.abs(countYu + countYd - size) >= tolerance) {
-//			return false;
-//		}
-////		for (int i = 0; i < max; i++) {
-////			if (this.getPixel(data, x - i, y + i, w, h) == 0) {
-////				count13++;
-////			} else {
-////				break;
-////			}
-////		}
-////		for (int i = 0; i < max; i++) {
-////			if (this.getPixel(data, x + i, y - i, w, h) == 0) {
-////				count13++;
-////			} else {
-////				break;
-////			}
-////		}
-////		for (int i = 0; i < max; i++) {
-////			if (this.getPixel(data, x - i, y - i, w, h) == 0) {
-////				count24++;
-////			} else {
-////				break;
-////			}
-////		}
-////		for (int i = 0; i < max; i++) {
-////			if (this.getPixel(data, x + i, y + i, w, h) == 0) {
-////				count24++;
-////			} else {
-////				break;
-////			}
-////		}
-////		if (Math.abs(count13 - sizeX) >= tolerance && Math.abs(count24 - sizeX) >= tolerance) {
-////			return false;
-////		}
-//		
-//		return true;
-//	}
-	
-	private byte getPixel(byte[] data, int x, int y, int w, int h) {
-		return x >= 0 && x < w && y >= 0 && y < h ? data[x + w * y] : (byte)0xff;
-	}
 
 	private byte[] getMonoImageData(byte[] data, int width, int height) {
 		int size = width * height;
@@ -477,22 +233,22 @@ public class MainActivity extends Activity {
 		Log.d(this.getClass().getName(), "Displayed size select dialog.");
 	}
 	
-	private void drawMonoImage(Bitmap bmp) {
+	private void drawMonoImage(Bitmap bmp, List<Point> corners) {
 		Canvas canvas = this.mImageHolder.lockCanvas();
 		if (canvas != null) {
 			canvas.drawColor(Color.BLACK);
 			if (bmp != null) {
-				Bitmap bm = this.getCalibrateBm(20);
 				canvas.drawBitmap(bmp, 0, 0, null);
-				canvas.drawBitmap(bm, 0, 0, null);
-				bm.recycle();
+			}
+			if (corners != null) {
+				Log.d("CORNER", corners.toString());
+				drawCorners(canvas, corners);
 			}
             this.mImageHolder.unlockCanvasAndPost(canvas);
 		}
 	}
 	
-	private void drawCorners(List<Point> corners) {
-		Canvas canvas = this.mImageHolder.lockCanvas();
+	private void drawCorners(Canvas canvas, List<Point> corners) {
 		if (canvas != null) {
 			Paint p = new Paint();
 			p.setStyle(Paint.Style.STROKE);
@@ -504,8 +260,9 @@ public class MainActivity extends Activity {
 				points[i++] = corner.x;
 				points[i++] = corner.y;
 			}
-			canvas.drawLines(points, p);
-			this.mImageHolder.unlockCanvasAndPost(canvas);
+//			canvas.drawLines(points, p);
+			canvas.drawPoints(points, p);
+			canvas.drawText(String.format("P: %d", corners.size()), 100, 100, p);
 		}
 	}
 	
