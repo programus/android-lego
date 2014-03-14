@@ -2,9 +2,13 @@ package org.programus.android.imagerecognitiontest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
+import android.graphics.Matrix;
 import android.graphics.Point;
+import android.util.Log;
 
 /**
  * 识别路标图形的类
@@ -105,6 +109,79 @@ public class SignDetector {
 //		return count > blockSize.x * blockSize.y * CHECK_RANGE * CHECK_RANGE * RATE;
 //	}
 	
+	public List<Point> getSamples(List<Point> corners) {
+		if (corners == null) {
+			return null;
+		}
+		final int LEN = 20;
+		
+		int blockSize = 10;
+		
+		Matrix matrix = new Matrix();
+		float[] dst = new float[corners.size() * 2];
+		float len = blockSize * (LEN + (float) PATTERN_SIZE);
+		float[] src = {
+			0, 0, 
+			len, 0,
+			0, len,
+			len, len
+		};
+		int i = 0;
+		for (Point p : corners) {
+			dst[i++] = p.x;
+			dst[i++] = p.y;
+		}
+		
+		matrix.setPolyToPoly(src, 0, dst, 0, corners.size());
+		
+		float offset = (float) (PATTERN_SIZE + 1) / 2 * blockSize;
+		float mid = offset + blockSize * (LEN / 2 - 1);
+		float end = offset + blockSize * (LEN - 1);
+		float add = blockSize * (LEN / 4);
+		float[] samples = {
+			offset, offset, 
+			mid, offset, 
+			end, offset, 
+			offset, mid, 
+			mid, mid, 
+			end, mid,
+			offset, end,
+			mid, end,
+			end, end,
+			offset + add, offset + add,
+			mid + add, offset + add,
+			offset + add, mid + add,
+			mid + add, mid + add
+		};
+		
+		matrix.mapPoints(samples);
+		List<Point> ps = new ArrayList<Point>(samples.length / 2);
+		for (i = 0; i < samples.length; i += 2) {
+			ps.add(new Point((int) samples[i], (int) samples[i + 1]));
+		}
+		
+		return ps;
+	}
+	
+	private Comparator<Point> pointComparator = new Comparator<Point>() {
+		private int getSquareDist(Point p) {
+			return p.x * p.x + p.y * p.y;
+		}
+		@Override
+		public int compare(Point pa, Point pb) {
+			int dsa = this.getSquareDist(pa);
+			int dsb = this.getSquareDist(pb);
+			
+			int dd = dsa - dsb;
+			if (dd == 0) {
+				int dy = pa.y - pb.y;
+				return dy == 0 ? pa.x - pb.x : dy;
+			} else {
+				return dd;
+			}
+		}
+	};
+	
 	private byte getPixel(byte[] data, int x, int y, int w, int h) {
 		return x >= 0 && x < w && y >= 0 && y < h ? data[x + w * y] : (byte)0xff;
 	}
@@ -172,6 +249,16 @@ public class SignDetector {
 						}
 					}
 				}
+			}
+		}
+		
+		Collections.sort(pointList, this.pointComparator);
+		if (pointList.size() >= 3) {
+			Point pa = pointList.get(1);
+			Point pb = pointList.get(2);
+			if (pa.y > pb.y) {
+				pointList.set(1, pb);
+				pointList.set(2, pa);
 			}
 		}
 		

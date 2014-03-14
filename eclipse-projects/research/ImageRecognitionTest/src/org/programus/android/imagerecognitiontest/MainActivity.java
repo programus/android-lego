@@ -77,8 +77,9 @@ public class MainActivity extends Activity {
 			byte[] monoData = getMonoImageData(data, mCamSize.width, mCamSize.height);
 			Bitmap bmp = getMonoImage(monoData, mCamSize.width, mCamSize.height);
 			List<Point> corners = mSignLoader.findPattern(monoData, mCamSize.width, mCamSize.height, 0, 0);
+			List<Point> samples = mSignLoader.getSamples(corners);
 			// List<Point> corners = getCorners(monoData, mCamSize.width, mCamSize.height, 20, 2);
-			drawMonoImage(bmp, corners);
+			drawMonoImage(bmp, corners, samples);
 			if (mTakingPic && mFocused) {
 				capturePattern(monoData, bmp);
 				mTakingPic = false;
@@ -233,35 +234,55 @@ public class MainActivity extends Activity {
 		Log.d(this.getClass().getName(), "Displayed size select dialog.");
 	}
 	
-	private void drawMonoImage(Bitmap bmp, List<Point> corners) {
+	private void drawMonoImage(Bitmap bmp, List<Point> corners, List<Point> samples) {
 		Canvas canvas = this.mImageHolder.lockCanvas();
 		if (canvas != null) {
 			canvas.drawColor(Color.BLACK);
 			if (bmp != null) {
 				canvas.drawBitmap(bmp, 0, 0, null);
 			}
-			if (corners != null) {
+			if (corners != null && corners.size() == CORNER_COUNT) {
 				Log.d("CORNER", corners.toString());
 				drawCorners(canvas, corners);
+			}
+			if (samples != null) {
+				drawSamples(canvas, samples);
 			}
             this.mImageHolder.unlockCanvasAndPost(canvas);
 		}
 	}
 	
+	private void drawSamples(Canvas canvas, List<Point> samples) {
+		Paint p = new Paint();
+		p.setStyle(Paint.Style.STROKE);
+		p.setStrokeWidth(2);
+		p.setColor(Color.GREEN);
+		for (Point pt : samples) {
+			canvas.drawPoint(pt.x, pt.y, p);
+		}
+	}
+	
 	private void drawCorners(Canvas canvas, List<Point> corners) {
 		if (canvas != null) {
+			int[] colors = {Color.RED, Color.YELLOW, Color.GREEN, Color.CYAN};
 			Paint p = new Paint();
 			p.setStyle(Paint.Style.STROKE);
-			p.setStrokeWidth(2);
-			p.setColor(Color.GREEN);
-			float[] points = new float[corners.size() * 2];
+			p.setStrokeWidth(4);
 			int i = 0;
 			for (Point corner : corners) {
-				points[i++] = corner.x;
-				points[i++] = corner.y;
+				p.setColor(colors[i++ % colors.length]);
+				canvas.drawPoint(corner.x, corner.y, p);
 			}
-//			canvas.drawLines(points, p);
-			canvas.drawPoints(points, p);
+//			float[] points = new float[corners.size() * 2];
+//			int i = 0;
+//			for (Point corner : corners) {
+//				points[i++] = corner.x;
+//				points[i++] = corner.y;
+//			}
+////			canvas.drawLines(points, p);
+//			canvas.drawPoints(points, p);
+			p.setColor(Color.GREEN);
+			p.setStrokeWidth(1);
 			canvas.drawText(String.format("P: %d", corners.size()), 100, 100, p);
 		}
 	}
