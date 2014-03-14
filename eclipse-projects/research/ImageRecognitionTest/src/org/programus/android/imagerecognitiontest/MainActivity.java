@@ -1,6 +1,7 @@
 package org.programus.android.imagerecognitiontest;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
 
 import android.app.Activity;
@@ -46,7 +47,7 @@ public class MainActivity extends Activity {
 	private boolean mTakingPic;
 	private boolean mFocused;
 	
-	private SignDetector mSignLoader = new SignDetector(3);
+	private SignDetector mSignDetector = new SignDetector(3);
 	
 	private SurfaceHolder.Callback holderCallback = new SurfaceHolder.Callback() {
 		
@@ -72,12 +73,16 @@ public class MainActivity extends Activity {
 	};
 	
 	private Camera.PreviewCallback mCamPrevCallback = new Camera.PreviewCallback() {
+		private boolean[] sign = new boolean[20 * 20];
 		@Override
 		public void onPreviewFrame(byte[] data, Camera camera) {
 			byte[] monoData = getMonoImageData(data, mCamSize.width, mCamSize.height);
 			Bitmap bmp = getMonoImage(monoData, mCamSize.width, mCamSize.height);
-			List<Point> corners = mSignLoader.findPattern(monoData, mCamSize.width, mCamSize.height, 0, 0);
-			List<Point> samples = mSignLoader.getSamples(corners);
+			List<Point> corners = mSignDetector.findPattern(monoData, mCamSize.width, mCamSize.height, 0, 0);
+			List<Point> samples = mSignDetector.getSamples(corners);
+			if (mSignDetector.getSign(monoData, mCamSize.width, mCamSize.height, sign)) {
+				drawCapturedPattern(sign, 20, 10);
+			}
 			// List<Point> corners = getCorners(monoData, mCamSize.width, mCamSize.height, 20, 2);
 			drawMonoImage(bmp, corners, samples);
 			if (mTakingPic && mFocused) {
@@ -105,6 +110,29 @@ public class MainActivity extends Activity {
 			}
 		}
 	};
+	
+	private void drawCapturedPattern(boolean[] sign, int len, int size) {
+		int[] colors = new int[sign.length * size * size];
+		Arrays.fill(colors, Color.WHITE);
+		int w = len * size;
+		for (int y = 0; y < len; y++) {
+			int base = y * len;
+			for (int x = 0; x < len; x++) {
+				int index = base + x;
+				if (sign[index]) {
+					for (int yy = y * size; yy < (y + 1) * size; yy++) {
+						Arrays.fill(colors, yy * w + x * size, yy * w + (x + 1) * size, Color.BLACK);
+					}
+				}
+			}
+		}
+		Bitmap bm = Bitmap.createBitmap(colors, w, w, Bitmap.Config.ARGB_8888);
+		this.mPatternView.setImageBitmap(bm);
+		ViewGroup.LayoutParams lp = this.mPatternView.getLayoutParams();
+		lp.width = bm.getWidth();
+		lp.height = bm.getHeight();
+		this.mPatternView.setLayoutParams(lp);
+	}
 
 	private byte[] getMonoImageData(byte[] data, int width, int height) {
 		int size = width * height;

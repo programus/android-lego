@@ -8,7 +8,6 @@ import java.util.List;
 
 import android.graphics.Matrix;
 import android.graphics.Point;
-import android.util.Log;
 
 /**
  * 识别路标图形的类
@@ -22,6 +21,10 @@ public class SignDetector {
 	private double variance = 0.3;
 	
 	private int minUnit = 1;
+	
+	private static final int LEN = 20;
+	private static final int BLOCK_SIZE = 10;
+	private static final int CORNER_COUNT = 4;
 	/**
 	 * 识别标记的模式。按宽度 黑x1，白x1，黑x3，白x1，黑x1 的模式。
 	 */
@@ -30,14 +33,6 @@ public class SignDetector {
 	 * 识别标记的总宽度（单位：一个单元宽度）
 	 */
 	private static final double PATTERN_SIZE = 7;
-	/**
-	 * 检查某单元块颜色时，扫描的范围比例。
-	 */
-	private static final double CHECK_RANGE = 0.5;
-	/**
-	 * 检查单元块颜色时，扫描后，所属颜色的最低百分比。
-	 */
-	private static final double RATE = 0.9;
 	
 	public SignDetector(int minUnit) {
 		this.minUnit = minUnit;
@@ -109,6 +104,54 @@ public class SignDetector {
 //		return count > blockSize.x * blockSize.y * CHECK_RANGE * CHECK_RANGE * RATE;
 //	}
 	
+	public boolean getSign(byte[] data, int w, int h, boolean[] buffer) {
+		List<Point> corners = this.findPattern(data, w, h, 0, 0);
+		if (corners != null && corners.size() == CORNER_COUNT) {
+			if (buffer.length < LEN * LEN) {
+				return false;
+			}
+			Matrix matrix = this.getMatrix(corners);
+			for (int y = 0; y < LEN; y++) {
+				int base = y * LEN;
+				for (int x = 0; x < LEN; x++) {
+					int index = base + x;
+					buffer[index] = this.isFilled(data, w, h, x, y, matrix);
+				}
+			}
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	private Matrix getMatrix(List<Point> corners) {
+		Matrix matrix = new Matrix();
+		float[] dst = new float[corners.size() * 2];
+		float len = BLOCK_SIZE * (LEN + (float) PATTERN_SIZE);
+		float offset = BLOCK_SIZE * ((float) PATTERN_SIZE + 1) / 2;
+		float[] src = {
+			-offset, -offset, 
+			len - offset, -offset,
+			-offset, len - offset,
+			len - offset, len - offset
+		};
+		int i = 0;
+		for (Point p : corners) {
+			dst[i++] = p.x;
+			dst[i++] = p.y;
+		}
+		
+		matrix.setPolyToPoly(src, 0, dst, 0, corners.size());
+		return matrix;
+	}
+	
+	private boolean isFilled(byte[] data, int w, int h, int x, int y, Matrix matrix) {
+		float[] point = {x * BLOCK_SIZE, y * BLOCK_SIZE};
+		matrix.mapPoints(point);
+		int color = this.getPixel(data, Math.round(point[0]), Math.round(point[1]), w, h);
+		return color == 0;
+	}
+	
 	public List<Point> getSamples(List<Point> corners) {
 		if (corners == null) {
 			return null;
@@ -120,11 +163,12 @@ public class SignDetector {
 		Matrix matrix = new Matrix();
 		float[] dst = new float[corners.size() * 2];
 		float len = blockSize * (LEN + (float) PATTERN_SIZE);
+		float offset = (float) (PATTERN_SIZE + 1) / 2 * blockSize;
 		float[] src = {
-			0, 0, 
-			len, 0,
-			0, len,
-			len, len
+			-offset, -offset, 
+			len - offset, -offset,
+			-offset, len - offset,
+			len - offset, len - offset
 		};
 		int i = 0;
 		for (Point p : corners) {
@@ -134,23 +178,22 @@ public class SignDetector {
 		
 		matrix.setPolyToPoly(src, 0, dst, 0, corners.size());
 		
-		float offset = (float) (PATTERN_SIZE + 1) / 2 * blockSize;
-		float mid = offset + blockSize * (LEN / 2 - 1);
-		float end = offset + blockSize * (LEN - 1);
+		float mid = blockSize * (LEN / 2 - 1);
+		float end = blockSize * (LEN - 1);
 		float add = blockSize * (LEN / 4);
 		float[] samples = {
-			offset, offset, 
-			mid, offset, 
-			end, offset, 
-			offset, mid, 
+			0, 0, 
+			mid, 0, 
+			end, 0, 
+			0, mid, 
 			mid, mid, 
 			end, mid,
-			offset, end,
+			0, end,
 			mid, end,
 			end, end,
-			offset + add, offset + add,
-			mid + add, offset + add,
-			offset + add, mid + add,
+			add, add,
+			mid + add, add,
+			add, mid + add,
 			mid + add, mid + add
 		};
 		
