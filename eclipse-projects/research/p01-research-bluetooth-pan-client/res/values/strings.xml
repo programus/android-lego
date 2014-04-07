@@ -2,4 +2,8 @@
 
     <string name="app_name">p01-research-bluetooth-pan-client</string>
 
+    <string name="default_ip">10.0.1.1</string>
+
+    <string name="label_beep">Beep</string>
+
 </resources>
