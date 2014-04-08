@@ -1,5 +1,10 @@
 package org.programus.book.mobilelego.research.connect;
 
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
+
 import android.app.Activity;
 import android.os.Bundle;
 import android.os.Handler;
@@ -8,6 +13,7 @@ import android.widget.Button;
 import android.widget.TextView;
 
 public class MainActivity extends Activity {
+	private final static int PORT = 9988;
 	private TextView mIpInput;
 	private Button mBeep;
 	private TextView mLog;
@@ -43,7 +49,34 @@ public class MainActivity extends Activity {
 	}
 
 	protected void connectAndSendData() {
-		// TODO: 追加网络连接和发送数据代码
+		// 从输入取得IP地址
+		String ip = this.mIpInput.getText().toString();
+		Socket socket = null;
+		OutputStream out = null;
+		try {
+			// 建立Socket连接
+			socket = new Socket(ip, PORT);
+			// 取得输出流
+			out = socket.getOutputStream();
+			// 输出数据
+			out.write(1);
+			// 清除本地缓存，确保数据发送出去
+			out.flush();
+		} catch (IOException e) {
+			// TODO: 出错时输出到Log中
+		} finally {
+			// 确保输出流和连接关闭
+			if (out != null) {
+				try {
+					out.close();
+				} catch (IOException e) {}
+			}
+			if (socket != null) {
+				try {
+					socket.close();
+				} catch (IOException e) {}
+			}
+		}
 	}
 
 }
