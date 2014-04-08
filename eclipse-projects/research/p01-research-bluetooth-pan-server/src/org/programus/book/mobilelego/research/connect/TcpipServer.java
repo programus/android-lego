@@ -36,9 +36,9 @@ public class TcpipServer {
 			
 			if (data == 1) {
 				// 如果收到数字1
-				Sound.beep();					// 发出“哔——”
+				Sound.beep();					// 发出“哔--”
 			} else {
-				Sound.buzz();					// 发出“bu——”
+				Sound.buzz();					// 发出“咘--”
 			}
 		} catch (IOException e) {
 			g.clear();							// 清屏
