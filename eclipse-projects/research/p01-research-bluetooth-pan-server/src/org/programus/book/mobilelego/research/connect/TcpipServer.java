@@ -27,7 +27,7 @@ public class TcpipServer {
 			server = new ServerSocket(PORT);	// 建立服务器
 			g.clear();							// 清屏
             // 在屏幕左上角显示文字
-            g.drawString("waiting connectoin...", 0, 0, 
+            g.drawString("waiting connection...", 0, 0, 
         		GraphicsLCD.LEFT | GraphicsLCD.TOP);
 			socket = server.accept();
 
