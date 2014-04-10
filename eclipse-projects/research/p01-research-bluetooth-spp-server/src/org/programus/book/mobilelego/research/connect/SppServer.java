@@ -23,6 +23,9 @@ public class SppServer {
         g.setFont(Font.getSmallFont());
         // 新建基于SPP的蓝牙连接器
         BTConnector connector = new BTConnector();
+        // 在屏幕左上角显示文字
+        g.drawString("waiting connectoin...", 0, 0, 
+            GraphicsLCD.LEFT | GraphicsLCD.TOP);
         // 等待连接
         NXTConnection conn = 
             connector.waitForConnection(0, NXTConnection.RAW);
