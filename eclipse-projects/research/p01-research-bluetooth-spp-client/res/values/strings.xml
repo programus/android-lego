@@ -2,4 +2,6 @@
 
     <string name="app_name">p01-research-bluetooth-spp-client</string>
 
+    <string name="label_beep">Beep</string>
+
 </resources>
