@@ -1,0 +1,19 @@
+<resources>
+
+    <string name="app_name">BluetoothCommunicationClient</string>
+
+    <string name="connect">Connect</string>
+
+    <string name="disconnect">DIsconnect</string>
+
+    <string name="forward">Forward</string>
+
+    <string name="flt">Float</string>
+
+    <string name="stop">Stop</string>
+
+    <string name="backward">Backward</string>
+
+    <string name="report">Report</string>
+
+</resources>
