@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project name="CommServer" basedir="." default="copy">
     <property name="source.dir"     value="src"/>
+    <property name="lib-src.link" 	value="../p01-research-bluetooth-comm-lib/src"/>
     <property name="lib.dir"        value="../ev3/ev3classes"/>
     <property name="class.dir"      value="build"/>
     <property name="jar.dir"        value="dist"/>
@@ -21,7 +22,9 @@
 
     <target name="compile" description="build class files" depends="clean">
         <mkdir dir="${class.dir}"/>
-        <javac srcdir="${source.dir}" destdir="${class.dir}" includeAntRuntime="true">
+        <javac destdir="${class.dir}" includeAntRuntime="true">
+            <src path="${lib-src.link}"/>
+            <src path="${source.dir}" />
             <classpath refid="libraries.path"/>
         </javac>
     </target>
