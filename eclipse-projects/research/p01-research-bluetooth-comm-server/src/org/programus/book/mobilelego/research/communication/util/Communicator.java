@@ -1,4 +1,4 @@
-package org.programus.book.mobilelego.research.communication;
+package org.programus.book.mobilelego.research.communication.util;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -8,15 +8,14 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import org.programus.book.mobilelego.research.communication.protocol.PhoneMessage;
-import org.programus.book.mobilelego.research.communication.protocol.RobotCommand;
-import org.programus.book.mobilelego.research.communication.protocol.RobotCommand.Type;
+import org.programus.book.mobilelego.research.communication.protocol.Protocol;
+import org.programus.book.mobilelego.research.communication.protocol.Protocol.Type;
 
-public class Communicator {
-	public static interface RobotCmdProcessor {
-		void process(RobotCommand cmd, Communicator communicator);
+public class Communicator<R extends Protocol, S extends Protocol> {
+	public static interface Processor<Rcv extends Protocol, Snd extends Protocol> {
+		void process(Rcv cmd, Communicator<Rcv, Snd> communicator);
 	}
-	private Map<Type, List<RobotCmdProcessor>> processorMap = new EnumMap<Type, List<RobotCmdProcessor>>(Type.class);
+	private Map<Type, List<Processor<R, S>>> processorMap = new EnumMap<Type, List<Processor<R, S>>>(Type.class);
 	private ObjectInputStream input;
 	private ObjectOutputStream output;
 	
@@ -28,15 +27,15 @@ public class Communicator {
 		this.startInputReadThread();
 	}
 	
-	public void addRobotCmdProcessor(Type type, RobotCmdProcessor processor) {
-		List<RobotCmdProcessor> processorList = processorMap.get(type);
+	public void addProcessor(Type type, Processor<R, S> processor) {
+		List<Processor<R, S>> processorList = processorMap.get(type);
 		if (processorList == null) {
-			processorList = new LinkedList<RobotCmdProcessor>();
+			processorList = new LinkedList<Processor<R, S>>();
 		}
 		processorList.add(processor);
 	}
 	
-	public void sendPhoneMsg(PhoneMessage msg) {
+	public void send(S msg) {
 		synchronized (output) {
 			try {
 				output.writeObject(msg);
@@ -58,8 +57,9 @@ public class Communicator {
 						break;
 					}
 					if (o != null) {
-                        RobotCommand cmd = (RobotCommand) o;
-                        processRobotCmd(cmd);
+                        @SuppressWarnings("unchecked")
+						R cmd = (R) o;
+                        processReceived(cmd);
                         if (cmd.getType() == Type.Exit) {
                         	alive = false;
                         }
@@ -84,10 +84,10 @@ public class Communicator {
         }
 	}
 	
-	private void processRobotCmd(RobotCommand cmd) {
+	private void processReceived(R cmd) {
 		if (cmd != null) {
-            List<RobotCmdProcessor> processorList = processorMap.get(cmd.getType());
-            for (RobotCmdProcessor processor : processorList) {
+            List<Processor<R, S>> processorList = processorMap.get(cmd.getType());
+            for (Processor<R, S> processor : processorList) {
             	processor.process(cmd, this);
             }
 		}

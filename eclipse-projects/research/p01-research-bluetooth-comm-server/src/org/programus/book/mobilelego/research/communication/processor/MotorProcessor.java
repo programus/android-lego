@@ -6,12 +6,12 @@ import java.util.TimerTask;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.hardware.port.MotorPort;
 
-import org.programus.book.mobilelego.research.communication.Communicator;
-import org.programus.book.mobilelego.research.communication.Communicator.RobotCmdProcessor;
 import org.programus.book.mobilelego.research.communication.protocol.PhoneMessage;
 import org.programus.book.mobilelego.research.communication.protocol.RobotCommand;
+import org.programus.book.mobilelego.research.communication.util.Communicator;
+import org.programus.book.mobilelego.research.communication.util.Communicator.Processor;
 
-public class MotorProcessor implements RobotCmdProcessor {
+public class MotorProcessor implements Processor<RobotCommand, PhoneMessage> {
 	private static enum Command {
 		Forward,
 		Float,
@@ -25,7 +25,7 @@ public class MotorProcessor implements RobotCmdProcessor {
 	private TimerTask task = null;
 
 	@Override
-	public void process(RobotCommand cmd, Communicator communicator) {
+	public void process(RobotCommand cmd, Communicator<RobotCommand, PhoneMessage> communicator) {
 		int cmdIndex = cmd.getIntValue();
 		float speed = cmd.getFloatValue();
 		motor.setSpeed(speed);
@@ -49,7 +49,7 @@ public class MotorProcessor implements RobotCmdProcessor {
 		}
 	}
 	
-	private void startReportTask(final Communicator communicator) {
+	private void startReportTask(final Communicator<RobotCommand, PhoneMessage> communicator) {
 		if (task != null) {
             task = new TimerTask() {
                 @Override
@@ -57,7 +57,7 @@ public class MotorProcessor implements RobotCmdProcessor {
                     PhoneMessage msg = new PhoneMessage();
                     msg.setType(PhoneMessage.Type.Motor);
                     msg.setIntValue(motor.getTachoCount());
-                    communicator.sendPhoneMsg(msg);
+                    communicator.send(msg);
                 }
             };
             

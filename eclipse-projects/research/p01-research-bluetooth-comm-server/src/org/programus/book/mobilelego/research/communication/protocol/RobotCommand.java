@@ -2,22 +2,15 @@ package org.programus.book.mobilelego.research.communication.protocol;
 
 import java.io.Serializable;
 
-public class RobotCommand implements Serializable{
+public class RobotCommand implements Protocol, Serializable{
 	private static final long serialVersionUID = -6897002117678872695L;
 
-	public static enum Type {
-		Button,
-		Motor,
-		Sensor,
-		Text,
-		Exit
-	};
-	
 	private Type type;
 	private int intValue;
 	private float floatValue;
 	private float[] arrayValue;
 	private String stringValue;
+	@Override
 	public Type getType() {
 		return type;
 	}

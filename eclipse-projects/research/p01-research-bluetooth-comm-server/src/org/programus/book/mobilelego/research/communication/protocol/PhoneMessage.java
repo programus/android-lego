@@ -2,20 +2,14 @@ package org.programus.book.mobilelego.research.communication.protocol;
 
 import java.io.Serializable;
 
-public class PhoneMessage implements Serializable {
+public class PhoneMessage implements Protocol, Serializable {
 	private static final long serialVersionUID = 2028887184636945050L;
-	public static enum Type {
-		Motor,
-		Button,
-		Sensor,
-		Text
-	}
-	
 	private Type type;
 	private int intValue;
 	private float floatValue;
 	private float[] arrayValue;
 	private String stringValue;
+	@Override
 	public Type getType() {
 		return type;
 	}

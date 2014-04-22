@@ -9,7 +9,9 @@ import lejos.hardware.lcd.GraphicsLCD;
 
 import org.programus.book.mobilelego.research.communication.net.Server;
 import org.programus.book.mobilelego.research.communication.processor.MotorProcessor;
+import org.programus.book.mobilelego.research.communication.protocol.PhoneMessage;
 import org.programus.book.mobilelego.research.communication.protocol.RobotCommand;
+import org.programus.book.mobilelego.research.communication.util.Communicator;
 
 public class CommServer {
 
@@ -29,8 +31,8 @@ public class CommServer {
         g.drawString("connected!", 0, 0, 
             GraphicsLCD.LEFT | GraphicsLCD.TOP);
 		try {
-			Communicator communicator = server.getCommunicator();
-			communicator.addRobotCmdProcessor(RobotCommand.Type.Motor, new MotorProcessor());
+			Communicator<RobotCommand, PhoneMessage> communicator = server.getCommunicator();
+			communicator.addProcessor(RobotCommand.Type.Motor, new MotorProcessor());
 		} catch (IOException e) {
 			Sound.buzz();
 		}
