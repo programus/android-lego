@@ -12,7 +12,7 @@
         android:orientation="vertical" >
 
         <Spinner
-            android:id="@+id/bt_devices"
+            android:id="@+id/paired_devices"
             android:layout_width="match_parent"
             android:layout_height="wrap_content" />
 
@@ -35,6 +35,24 @@
             android:layout_height="wrap_content"
             android:textOff="@string/report"
             android:textOn="@string/report" />
+
+        <ScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content" >
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" >
+
+                <TextView
+                    android:id="@+id/log"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:textAppearance="?android:attr/textAppearanceSmall" />
+
+            </LinearLayout>
+        </ScrollView>
 
     </LinearLayout>
 

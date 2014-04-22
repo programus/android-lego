@@ -16,4 +16,6 @@
 
     <string name="report">Report</string>
 
+    <string name="msg_bluetooth_not_supported">此设备不支持蓝牙！</string>
+    <string name="msg_bluetooth_is_necessary">此应用需要蓝牙。\n蓝牙未开启，程序退出。</string>
 </resources>
