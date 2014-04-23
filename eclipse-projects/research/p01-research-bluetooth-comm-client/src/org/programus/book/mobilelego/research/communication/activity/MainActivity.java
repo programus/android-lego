@@ -1,15 +1,17 @@
 package org.programus.book.mobilelego.research.communication.activity;
 
-import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.UUID;
 
 import org.programus.book.mobilelego.research.communication.R;
+import org.programus.book.mobilelego.research.communication.net.SppClient;
 import org.programus.book.mobilelego.research.communication.protocol.PhoneMessage;
 import org.programus.book.mobilelego.research.communication.protocol.RobotCommand;
 import org.programus.book.mobilelego.research.communication.util.Communicator;
@@ -17,10 +19,11 @@ import org.programus.book.mobilelego.research.communication.util.Communicator;
 import android.app.Activity;
 import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
-import android.bluetooth.BluetoothSocket;
 import android.content.Intent;
 import android.os.Bundle;
 import android.widget.ArrayAdapter;
+import android.widget.CompoundButton;
+import android.widget.CompoundButton.OnCheckedChangeListener;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -28,7 +31,6 @@ import android.widget.ToggleButton;
 
 public class MainActivity extends Activity {
 	private static final int REQUEST_ENABLE_BT = 5;
-	private final static String SPP_UUID = "00001101-0000-1000-8000-00805F9B34FB";
 
 	private Spinner mDevices;
 	private ToggleButton mConnect;
@@ -37,6 +39,7 @@ public class MainActivity extends Activity {
 	private BluetoothAdapter mBtAdapter;
 	private List<BluetoothDevice> mDeviceList;
 	
+	private SppClient mClient;
 	private Communicator<PhoneMessage, RobotCommand> mComm;
 
 	@Override
@@ -53,53 +56,52 @@ public class MainActivity extends Activity {
 	private void initComponents() {
 		this.mDevices = (Spinner) this.findViewById(R.id.paired_devices);
 		this.mLog = (TextView) this.findViewById(R.id.log);
-	}
-	
-	private void connect() {
+		this.mComm = new Communicator<PhoneMessage, RobotCommand>();
+		this.mClient = new SppClient();
+		this.mClient.setOnConnectedListener(new SppClient.OnConnectedListener() {
+			
+			@Override
+			public void onFailed(Exception e) {
+				appendLog(e);
+			}
+			
+			@Override
+			public void onConnected(InputStream input, OutputStream output) {
+				try {
+					mComm.reset(new ObjectInputStream(input), new ObjectOutputStream(output));
+				} catch (Exception e) {
+					appendLog(e);
+				}
+			}
+		});
 		
+		this.mConnect = (ToggleButton) this.findViewById(R.id.connect);
+		this.mConnect.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			@Override
+			public void onCheckedChanged(CompoundButton buttonView,
+					boolean isChecked) {
+				if (isChecked) {
+					connect(mDeviceList.get(mDevices.getSelectedItemPosition()));
+				} else {
+					disconnect();
+				}
+			}
+		});
 	}
 	
-	/**
-	 * 连接并发送数据到EV3
-	 */
-    private void connectAndSendData() {
-    	this.clearLog();
-    	if (this.mDeviceList != null && this.mDeviceList.size() > 0) {
-            // 从列表中取得用户选择的设备
-            BluetoothDevice device = this.mDeviceList.get(this.mDevices.getSelectedItemPosition());
-            BluetoothSocket socket = null;
-            OutputStream out = null;
-            try {
-                // 与设备建立SPP连接
-                this.appendLog(String.format("正在与%s[%s]建立SPP连接...", device.getName(), device.getAddress()));
-                socket = device.createRfcommSocketToServiceRecord(UUID.fromString(SPP_UUID));
-                socket.connect();
-                this.appendLog(String.format("连接%s[%s]成功！", device.getName(), device.getAddress()));
-                // 取得输出流
-                out = socket.getOutputStream();
-                this.appendLog("成功取得输出流。");
-                // 输出数据
-                out.write(1);
-                this.appendLog(String.format("输出数据：%d。", 1));
-                // 清除本地缓存，确保数据发送出去
-                out.flush();
-            } catch (IOException e) {
-                this.appendLog(e);
-            } finally {
-                // 确保输出流和连接关闭
-                if (out != null) {
-                    try {
-                        this.appendLog("关闭输出流。");
-                        out.close();
-                    } catch (IOException e) {}
-                }
-                try {
-                    this.appendLog("关闭socket。");
-                    socket.close();
-                } catch (IOException e) {}
-            }
-    	}
-    }
+	private void connect(BluetoothDevice device) {
+		this.clearLog();
+		if (mClient.isConnected()) {
+			mClient.close();
+		}
+		mClient.connect(device);
+	}
+	
+	private void disconnect() {
+		if (mClient.isConnected()) {
+			mClient.close();
+		}
+	}
 
     /**
      * 追加文本到日志文本框中

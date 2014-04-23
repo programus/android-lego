@@ -19,9 +19,20 @@ public class Communicator<R extends Protocol, S extends Protocol> {
 	private ObjectInputStream input;
 	private ObjectOutputStream output;
 	
-	private boolean alive = true;
+	private boolean available;
+	
+	public Communicator() {
+	}
 	
 	public Communicator(ObjectInputStream input, ObjectOutputStream output) {
+		this.reset(input, output);
+	}
+	
+	public synchronized void reset(ObjectInputStream input, ObjectOutputStream output) {
+		if (this.available) {
+			this.finish();
+		}
+		this.available = true;
 		this.input = input;
 		this.output = output;
 		this.startInputReadThread();
@@ -40,20 +51,29 @@ public class Communicator<R extends Protocol, S extends Protocol> {
 			try {
 				output.writeObject(msg);
 			} catch (IOException e) {
-				alive = false;
+				available = false;
 			}
 		}
+	}
+	
+	public void close() {
+		this.available = false;
+	}
+	
+	public boolean isAvailable() {
+		return this.available;
 	}
 	
 	private void startInputReadThread() {
 		Thread t = new Thread(new Runnable() {
 			@Override
 			public void run() {
-				while (alive) {
+				while (available) {
 					Object o = null;
 					try {
 						o = input.readObject();
 					} catch (Exception e) {
+						available = false;
 						break;
 					}
 					if (o != null) {
@@ -61,7 +81,7 @@ public class Communicator<R extends Protocol, S extends Protocol> {
 						R cmd = (R) o;
                         processReceived(cmd);
                         if (cmd.getType() == Type.Exit) {
-                        	alive = false;
+                        	available = false;
                         }
 					}
 				}
@@ -72,6 +92,7 @@ public class Communicator<R extends Protocol, S extends Protocol> {
 	}
 	
 	private void finish() {
+		this.available = false;
         try {
             input.close();
         } catch (IOException e) {
