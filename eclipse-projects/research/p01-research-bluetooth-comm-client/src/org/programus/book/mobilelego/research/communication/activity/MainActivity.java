@@ -1,9 +1,5 @@
 package org.programus.book.mobilelego.research.communication.activity;
 
-import java.io.InputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.ArrayList;
@@ -13,6 +9,7 @@ import java.util.Set;
 import org.programus.book.mobilelego.research.communication.R;
 import org.programus.book.mobilelego.research.communication.net.SppClient;
 import org.programus.book.mobilelego.research.communication.protocol.PhoneMessage;
+import org.programus.book.mobilelego.research.communication.protocol.Protocol;
 import org.programus.book.mobilelego.research.communication.protocol.RobotCommand;
 import org.programus.book.mobilelego.research.communication.util.Communicator;
 
@@ -66,9 +63,11 @@ public class MainActivity extends Activity {
 			}
 			
 			@Override
-			public void onConnected(InputStream input, OutputStream output) {
+			public void onConnected(Communicator<PhoneMessage, RobotCommand> comm) {
 				try {
-					mComm.reset(new ObjectInputStream(input), new ObjectOutputStream(output));
+                    appendLog("Connected");
+                    mComm = comm;
+					appendLog("Communicator ready.");
 				} catch (Exception e) {
 					appendLog(e);
 				}
@@ -83,6 +82,7 @@ public class MainActivity extends Activity {
 				if (isChecked) {
 					connect(mDeviceList.get(mDevices.getSelectedItemPosition()));
 				} else {
+					remoteFinish();
 					disconnect();
 				}
 			}
@@ -94,13 +94,21 @@ public class MainActivity extends Activity {
 		if (mClient.isConnected()) {
 			mClient.close();
 		}
+		appendLog("Connecting...");
 		mClient.connect(device);
 	}
 	
 	private void disconnect() {
 		if (mClient.isConnected()) {
 			mClient.close();
+			appendLog("Disconnected.");
 		}
+	}
+	
+	private void remoteFinish() {
+		RobotCommand cmd = new RobotCommand();
+		cmd.setType(Protocol.Type.Exit);
+		mComm.send(cmd);
 	}
 
     /**

@@ -1,9 +1,11 @@
 package org.programus.book.mobilelego.research.communication.net;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.util.UUID;
+
+import org.programus.book.mobilelego.research.communication.protocol.PhoneMessage;
+import org.programus.book.mobilelego.research.communication.protocol.RobotCommand;
+import org.programus.book.mobilelego.research.communication.util.Communicator;
 
 import android.bluetooth.BluetoothDevice;
 import android.bluetooth.BluetoothSocket;
@@ -11,15 +13,16 @@ import android.bluetooth.BluetoothSocket;
 public class SppClient {
 	private final static String SPP_UUID = "00001101-0000-1000-8000-00805F9B34FB";
 	public static interface OnConnectedListener {
-		void onConnected(InputStream input, OutputStream output);
+		void onConnected(Communicator<PhoneMessage, RobotCommand> comm);
 		void onFailed(Exception e);
 	}
 	
-	private BluetoothSocket socket;
-	private OnConnectedListener onConnectedListener;
+	private BluetoothSocket mSocket;
+	private OnConnectedListener mConnectedListener;
+	private Communicator<PhoneMessage, RobotCommand> mComm = new Communicator<PhoneMessage, RobotCommand>();
 	
 	public void setOnConnectedListener(OnConnectedListener listener) {
-		this.onConnectedListener = listener;
+		this.mConnectedListener = listener;
 	}
 	
 	public void connect(final BluetoothDevice device) {
@@ -28,15 +31,15 @@ public class SppClient {
 			public void run() {
                 close();
                 try {
-					socket = device.createRfcommSocketToServiceRecord(UUID.fromString(SPP_UUID));
-					socket.connect();
-					
-					if (onConnectedListener != null) {
-					    onConnectedListener.onConnected(socket.getInputStream(), socket.getOutputStream());
+					mSocket = device.createRfcommSocketToServiceRecord(UUID.fromString(SPP_UUID));
+					mSocket.connect();
+					mComm.reset(mSocket.getInputStream(), mSocket.getOutputStream());
+					if (mConnectedListener != null) {
+					    mConnectedListener.onConnected(mComm);
 					}
 				} catch (Exception e) {
-					if (onConnectedListener != null) {
-						onConnectedListener.onFailed(e);
+					if (mConnectedListener != null) {
+						mConnectedListener.onFailed(e);
 					}
 				}
 			}
@@ -45,17 +48,22 @@ public class SppClient {
 	}
 	
 	public boolean isConnected() {
-		return socket != null;
+		return mSocket != null;
 	}
 	
 	public void close() {
-		if (socket != null) {
+		if (mComm.isAvailable()) {
+			mComm.close();
+		}
+		if (mSocket != null) {
 			try {
-				socket.close();
+				synchronized (mComm) {
+                    mSocket.close();
+				}
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-			socket = null;
+			mSocket = null;
 		}
 	}
 }

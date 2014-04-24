@@ -1,8 +1,10 @@
 package org.programus.book.mobilelego.research.communication.util;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
+import java.io.OutputStream;
 import java.util.EnumMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -13,7 +15,7 @@ import org.programus.book.mobilelego.research.communication.protocol.Protocol.Ty
 
 public class Communicator<R extends Protocol, S extends Protocol> {
 	public static interface Processor<Rcv extends Protocol, Snd extends Protocol> {
-		void process(Rcv cmd, Communicator<Rcv, Snd> communicator);
+		void process(Rcv msg, Communicator<Rcv, Snd> communicator);
 	}
 	private Map<Type, List<Processor<R, S>>> processorMap = new EnumMap<Type, List<Processor<R, S>>>(Type.class);
 	private ObjectInputStream input;
@@ -24,17 +26,18 @@ public class Communicator<R extends Protocol, S extends Protocol> {
 	public Communicator() {
 	}
 	
-	public Communicator(ObjectInputStream input, ObjectOutputStream output) {
+	public Communicator(InputStream input, OutputStream output) throws IOException {
 		this.reset(input, output);
 	}
 	
-	public synchronized void reset(ObjectInputStream input, ObjectOutputStream output) {
+	public synchronized void reset(InputStream input, OutputStream output) throws IOException {
 		if (this.available) {
 			this.finish();
 		}
 		this.available = true;
-		this.input = input;
-		this.output = output;
+		this.output = new ObjectOutputStream(output);
+		this.output.flush();
+		this.input = new ObjectInputStream(input);
 		this.startInputReadThread();
 	}
 	
@@ -91,7 +94,7 @@ public class Communicator<R extends Protocol, S extends Protocol> {
 		t.start();
 	}
 	
-	private void finish() {
+	private synchronized void finish() {
 		this.available = false;
         try {
             input.close();

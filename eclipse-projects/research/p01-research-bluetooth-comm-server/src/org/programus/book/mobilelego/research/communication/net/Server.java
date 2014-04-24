@@ -1,8 +1,6 @@
 package org.programus.book.mobilelego.research.communication.net;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 
 import lejos.remote.nxt.BTConnector;
 import lejos.remote.nxt.NXTConnection;
@@ -33,7 +31,7 @@ public class Server {
 	
 	public Communicator<RobotCommand, PhoneMessage> getCommunicator() throws IOException {
 		if (this.communicator == null) {
-            this.communicator = new Communicator<RobotCommand, PhoneMessage>(new ObjectInputStream(conn.openInputStream()), new ObjectOutputStream(conn.openOutputStream()));
+            this.communicator = new Communicator<RobotCommand, PhoneMessage>(conn.openInputStream(), conn.openOutputStream());
 		}
 		return this.communicator;
 	}
