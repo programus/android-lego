@@ -8,6 +8,7 @@ import java.util.Set;
 
 import org.programus.book.mobilelego.research.communication.R;
 import org.programus.book.mobilelego.research.communication.net.SppClient;
+import org.programus.book.mobilelego.research.communication.processor.MotorReportProcessor;
 import org.programus.book.mobilelego.research.communication.protocol.PhoneMessage;
 import org.programus.book.mobilelego.research.communication.protocol.Protocol;
 import org.programus.book.mobilelego.research.communication.protocol.RobotCommand;
@@ -18,9 +19,12 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.Intent;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.CompoundButton.OnCheckedChangeListener;
+import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -32,6 +36,14 @@ public class MainActivity extends Activity {
 	private Spinner mDevices;
 	private ToggleButton mConnect;
 	private TextView mLog;
+	
+	private SeekBar mSpeedBar;
+	private Button mForward;
+	private Button mBackword;
+	private Button mFloat;
+	private Button mStop;
+	private ToggleButton mReport;
+	private TextView mTachoCount;
 	
 	private BluetoothAdapter mBtAdapter;
 	private List<BluetoothDevice> mDeviceList;
@@ -53,7 +65,7 @@ public class MainActivity extends Activity {
 	private void initComponents() {
 		this.mDevices = (Spinner) this.findViewById(R.id.paired_devices);
 		this.mLog = (TextView) this.findViewById(R.id.log);
-		this.mComm = new Communicator<PhoneMessage, RobotCommand>();
+		this.mTachoCount = (TextView) this.findViewById(R.id.tacho_count);
 		this.mClient = new SppClient();
 		this.mClient.setOnConnectedListener(new SppClient.OnConnectedListener() {
 			
@@ -67,6 +79,21 @@ public class MainActivity extends Activity {
 				try {
                     appendLog("Connected");
                     mComm = comm;
+                    MotorReportProcessor processor = new MotorReportProcessor();
+                    processor.setReportCallback(new MotorReportProcessor.ReportCallback() {
+                        @Override
+                        public void displayReport(final int value) {
+                            System.out.println("update report");
+                            runOnUiThread(new Runnable () {
+                                @Override
+                                public void run() {
+                                    mTachoCount.setText(String.format("TachoCount: %d", value));
+                                }
+                            });
+                        }
+                    });
+                    
+                    mComm.addProcessor(Protocol.Type.Motor, processor);
 					appendLog("Communicator ready.");
 				} catch (Exception e) {
 					appendLog(e);
@@ -87,6 +114,67 @@ public class MainActivity extends Activity {
 				}
 			}
 		});
+		
+		this.mSpeedBar = (SeekBar) this.findViewById(R.id.speed);
+		this.mForward = (Button) this.findViewById(R.id.forward);
+		this.mBackword = (Button) this.findViewById(R.id.backward);
+		this.mFloat = (Button) this.findViewById(R.id.flt);
+		this.mStop = (Button) this.findViewById(R.id.stop);
+		
+		this.mForward.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				int speed = mSpeedBar.getProgress();
+				sendMotorCommand(Protocol.MotorCommand.Forward, speed);
+			}
+		});
+		
+		this.mBackword.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				int speed = mSpeedBar.getProgress();
+				sendMotorCommand(Protocol.MotorCommand.Backword, speed);
+			}
+		});
+		
+		this.mFloat.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				int speed = mSpeedBar.getProgress();
+				sendMotorCommand(Protocol.MotorCommand.Float, speed);
+			}
+		});
+		
+		this.mStop.setOnClickListener(new View.OnClickListener() {
+			@Override
+			public void onClick(View v) {
+				int speed = mSpeedBar.getProgress();
+				sendMotorCommand(Protocol.MotorCommand.Stop, speed);
+			}
+		});
+		
+		this.mReport = (ToggleButton) this.findViewById(R.id.toggle_report);
+		
+		this.mReport.setOnCheckedChangeListener(new OnCheckedChangeListener() {
+			@Override
+			public void onCheckedChanged(CompoundButton buttonView,
+					boolean isChecked) {
+				sendMotorCommand(Protocol.MotorCommand.Report, isChecked ? 1 : 0);
+				if (!isChecked) {
+					mTachoCount.setText("");
+				}
+			}
+		});
+		
+		
+	}
+	
+	private void sendMotorCommand(Protocol.MotorCommand command, float speed) {
+        RobotCommand cmd = new RobotCommand();
+        cmd.setType(Protocol.Type.Motor);
+        cmd.setIntValue(command.ordinal());
+        cmd.setFloatValue(speed);
+        this.mComm.send(cmd);
 	}
 	
 	private void connect(BluetoothDevice device) {

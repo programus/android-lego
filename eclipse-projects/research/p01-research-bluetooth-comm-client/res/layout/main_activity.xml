@@ -66,7 +66,8 @@
             android:id="@+id/speed"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:max="@integer/max_speed" />
+            android:max="@integer/max_speed"
+            android:progress="@integer/max_speed" />
 
         <Button
             android:id="@+id/forward"
