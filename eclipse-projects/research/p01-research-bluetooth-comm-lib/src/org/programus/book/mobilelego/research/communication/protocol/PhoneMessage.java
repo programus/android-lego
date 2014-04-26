@@ -40,4 +40,14 @@ public class PhoneMessage implements Protocol, Serializable {
 	public void setStringValue(String stringValue) {
 		this.stringValue = stringValue;
 	}
+
+	@Override
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		sb.append("PhoneMessage == \n");
+		sb.append("Type: ").append(type.toString()).append("\n");
+		sb.append("int: ").append(intValue).append('\n');
+		sb.append("float: ").append(floatValue).append('\n');
+		return sb.toString();
+	}
 }

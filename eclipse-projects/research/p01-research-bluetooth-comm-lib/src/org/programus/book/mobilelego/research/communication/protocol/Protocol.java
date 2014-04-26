@@ -8,6 +8,14 @@ public interface Protocol {
 		Text, 
 		Exit;
 	}
+	
+	public enum MotorCommand {
+		Forward,
+		Backword,
+		Float,
+		Stop,
+		Report
+	}
 
 	public Type getType();
 }

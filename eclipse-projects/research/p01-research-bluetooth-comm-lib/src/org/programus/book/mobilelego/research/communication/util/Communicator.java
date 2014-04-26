@@ -45,6 +45,7 @@ public class Communicator<R extends Protocol, S extends Protocol> {
 		List<Processor<R, S>> processorList = processorMap.get(type);
 		if (processorList == null) {
 			processorList = new LinkedList<Processor<R, S>>();
+			processorMap.put(type, processorList);
 		}
 		processorList.add(processor);
 	}
@@ -52,7 +53,9 @@ public class Communicator<R extends Protocol, S extends Protocol> {
 	public void send(S msg) {
 		synchronized (output) {
 			try {
+				System.out.println(String.format("Send: %s", msg.toString()));
 				output.writeObject(msg);
+				output.flush();
 			} catch (IOException e) {
 				available = false;
 			}
@@ -80,6 +83,7 @@ public class Communicator<R extends Protocol, S extends Protocol> {
 						break;
 					}
 					if (o != null) {
+						System.out.println(String.format("Received: %s", o.toString()));
                         @SuppressWarnings("unchecked")
 						R cmd = (R) o;
                         processReceived(cmd);
@@ -111,8 +115,10 @@ public class Communicator<R extends Protocol, S extends Protocol> {
 	private void processReceived(R cmd) {
 		if (cmd != null) {
             List<Processor<R, S>> processorList = processorMap.get(cmd.getType());
-            for (Processor<R, S> processor : processorList) {
-            	processor.process(cmd, this);
+            if (processorList != null) {
+                for (Processor<R, S> processor : processorList) {
+                    processor.process(cmd, this);
+                }
             }
 		}
 	}
