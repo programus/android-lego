@@ -1,13 +1,12 @@
 package org.programus.book.mobilelego.research.communication.processor;
 
-import org.programus.book.mobilelego.research.communication.protocol.PhoneMessage;
-import org.programus.book.mobilelego.research.communication.protocol.RobotCommand;
+import org.programus.book.mobilelego.research.communication.protocol.MotorReportMessage;
 import org.programus.book.mobilelego.research.communication.util.Communicator;
 import org.programus.book.mobilelego.research.communication.util.Communicator.Processor;
 
-public class MotorReportProcessor implements Processor<PhoneMessage, RobotCommand> {
+public class MotorReportProcessor implements Processor<MotorReportMessage> {
 	public static interface ReportCallback {
-		void displayReport(int value);
+		void displayReport(MotorReportMessage msg);
 	}
 	
 	private ReportCallback mCallback;
@@ -17,12 +16,10 @@ public class MotorReportProcessor implements Processor<PhoneMessage, RobotComman
 	}
 	
 	@Override
-	public void process(PhoneMessage msg,
-			Communicator<PhoneMessage, RobotCommand> communicator) {
+	public void process(MotorReportMessage msg, Communicator communicator) {
 		if (mCallback != null) {
 			System.out.printf("Process msg: %s\n", msg.toString());
-			int value = msg.getIntValue();
-			mCallback.displayReport(value);
+			mCallback.displayReport(msg);
 		}
 	}
 

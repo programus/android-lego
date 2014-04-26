@@ -5,19 +5,19 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
-import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.programus.book.mobilelego.research.communication.protocol.ExitSignal;
 import org.programus.book.mobilelego.research.communication.protocol.Protocol;
-import org.programus.book.mobilelego.research.communication.protocol.Protocol.Type;
 
-public class Communicator<R extends Protocol, S extends Protocol> {
-	public static interface Processor<Rcv extends Protocol, Snd extends Protocol> {
-		void process(Rcv msg, Communicator<Rcv, Snd> communicator);
+public class Communicator {
+	public static interface Processor<T extends Protocol> {
+		void process(T msg, Communicator communicator);
 	}
-	private Map<Type, List<Processor<R, S>>> processorMap = new EnumMap<Type, List<Processor<R, S>>>(Type.class);
+	private Map<String, List<Processor<? extends Protocol>>> processorMap = new HashMap<String, List<Processor<? extends Protocol>>>();
 	private ObjectInputStream input;
 	private ObjectOutputStream output;
 	
@@ -41,16 +41,16 @@ public class Communicator<R extends Protocol, S extends Protocol> {
 		this.startInputReadThread();
 	}
 	
-	public void addProcessor(Type type, Processor<R, S> processor) {
-		List<Processor<R, S>> processorList = processorMap.get(type);
+	public <P extends Protocol> void addProcessor(Class<P> type, Processor<P> processor) {
+		List<Processor<? extends Protocol>> processorList = processorMap.get(type.getName());
 		if (processorList == null) {
-			processorList = new LinkedList<Processor<R, S>>();
-			processorMap.put(type, processorList);
+			processorList = new LinkedList<Processor<? extends Protocol>>();
+			processorMap.put(type.getName(), processorList);
 		}
 		processorList.add(processor);
 	}
 	
-	public void send(S msg) {
+	public void send(Protocol msg) {
 		synchronized (output) {
 			try {
 				System.out.println(String.format("Send: %s", msg.toString()));
@@ -84,12 +84,13 @@ public class Communicator<R extends Protocol, S extends Protocol> {
 					}
 					if (o != null) {
 						System.out.println(String.format("Received: %s", o.toString()));
-                        @SuppressWarnings("unchecked")
-						R cmd = (R) o;
-                        processReceived(cmd);
-                        if (cmd.getType() == Type.Exit) {
-                        	available = false;
-                        }
+						if (o instanceof ExitSignal) {
+							available = false;
+							break;
+						} else {
+                            Protocol cmd = (Protocol) o;
+                            processReceived(cmd);
+						}
 					}
 				}
 				finish();
@@ -112,12 +113,14 @@ public class Communicator<R extends Protocol, S extends Protocol> {
         }
 	}
 	
-	private void processReceived(R cmd) {
+	private <P extends Protocol> void processReceived(P cmd) {
 		if (cmd != null) {
-            List<Processor<R, S>> processorList = processorMap.get(cmd.getType());
+            List<Processor<? extends Protocol>> processorList = processorMap.get(cmd.getClass().getName());
             if (processorList != null) {
-                for (Processor<R, S> processor : processorList) {
-                    processor.process(cmd, this);
+                for (Processor<? extends Protocol> processor : processorList) {
+                	@SuppressWarnings("unchecked")
+					Processor<P> p = (Processor<P>) processor;
+                    p.process(cmd, this);
                 }
             }
 		}

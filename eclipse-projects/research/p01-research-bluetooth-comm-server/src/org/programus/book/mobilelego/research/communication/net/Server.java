@@ -5,13 +5,11 @@ import java.io.IOException;
 import lejos.remote.nxt.BTConnector;
 import lejos.remote.nxt.NXTConnection;
 
-import org.programus.book.mobilelego.research.communication.protocol.PhoneMessage;
-import org.programus.book.mobilelego.research.communication.protocol.RobotCommand;
 import org.programus.book.mobilelego.research.communication.util.Communicator;
 
 public class Server {
 	private static Server instance = new Server();
-	private Communicator<RobotCommand, PhoneMessage> communicator; 
+	private Communicator communicator; 
 	private NXTConnection conn; 
 
 	private Server() {}
@@ -29,9 +27,9 @@ public class Server {
 		return conn != null;
 	}
 	
-	public Communicator<RobotCommand, PhoneMessage> getCommunicator() throws IOException {
+	public Communicator getCommunicator() throws IOException {
 		if (this.communicator == null) {
-            this.communicator = new Communicator<RobotCommand, PhoneMessage>(conn.openInputStream(), conn.openOutputStream());
+            this.communicator = new Communicator(conn.openInputStream(), conn.openOutputStream());
 		}
 		return this.communicator;
 	}

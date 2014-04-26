@@ -3,8 +3,6 @@ package org.programus.book.mobilelego.research.communication.net;
 import java.io.IOException;
 import java.util.UUID;
 
-import org.programus.book.mobilelego.research.communication.protocol.PhoneMessage;
-import org.programus.book.mobilelego.research.communication.protocol.RobotCommand;
 import org.programus.book.mobilelego.research.communication.util.Communicator;
 
 import android.bluetooth.BluetoothDevice;
@@ -13,13 +11,13 @@ import android.bluetooth.BluetoothSocket;
 public class SppClient {
 	private final static String SPP_UUID = "00001101-0000-1000-8000-00805F9B34FB";
 	public static interface OnConnectedListener {
-		void onConnected(Communicator<PhoneMessage, RobotCommand> comm);
+		void onConnected(Communicator comm);
 		void onFailed(Exception e);
 	}
 	
 	private BluetoothSocket mSocket;
 	private OnConnectedListener mConnectedListener;
-	private Communicator<PhoneMessage, RobotCommand> mComm = new Communicator<PhoneMessage, RobotCommand>();
+	private Communicator mComm = new Communicator();
 	
 	public void setOnConnectedListener(OnConnectedListener listener) {
 		this.mConnectedListener = listener;

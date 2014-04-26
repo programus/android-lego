@@ -9,9 +9,10 @@ import java.util.Set;
 import org.programus.book.mobilelego.research.communication.R;
 import org.programus.book.mobilelego.research.communication.net.SppClient;
 import org.programus.book.mobilelego.research.communication.processor.MotorReportProcessor;
-import org.programus.book.mobilelego.research.communication.protocol.PhoneMessage;
-import org.programus.book.mobilelego.research.communication.protocol.Protocol;
-import org.programus.book.mobilelego.research.communication.protocol.RobotCommand;
+import org.programus.book.mobilelego.research.communication.protocol.ExitSignal;
+import org.programus.book.mobilelego.research.communication.protocol.MotorMoveCommand;
+import org.programus.book.mobilelego.research.communication.protocol.MotorReportCommand;
+import org.programus.book.mobilelego.research.communication.protocol.MotorReportMessage;
 import org.programus.book.mobilelego.research.communication.util.Communicator;
 
 import android.app.Activity;
@@ -49,7 +50,7 @@ public class MainActivity extends Activity {
 	private List<BluetoothDevice> mDeviceList;
 	
 	private SppClient mClient;
-	private Communicator<PhoneMessage, RobotCommand> mComm;
+	private Communicator mComm;
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -75,25 +76,25 @@ public class MainActivity extends Activity {
 			}
 			
 			@Override
-			public void onConnected(Communicator<PhoneMessage, RobotCommand> comm) {
+			public void onConnected(Communicator comm) {
 				try {
                     appendLog("Connected");
                     mComm = comm;
                     MotorReportProcessor processor = new MotorReportProcessor();
                     processor.setReportCallback(new MotorReportProcessor.ReportCallback() {
                         @Override
-                        public void displayReport(final int value) {
+                        public void displayReport(final MotorReportMessage msg) {
                             System.out.println("update report");
                             runOnUiThread(new Runnable () {
                                 @Override
                                 public void run() {
-                                    mTachoCount.setText(String.format("TachoCount: %d", value));
+                                    mTachoCount.setText(String.format("TachoCount: %d\nSpeed: %d", msg.getTachoCount(), msg.getSpeed()));
                                 }
                             });
                         }
                     });
                     
-                    mComm.addProcessor(Protocol.Type.Motor, processor);
+                    mComm.addProcessor(MotorReportMessage.class, processor);
 					appendLog("Communicator ready.");
 				} catch (Exception e) {
 					appendLog(e);
@@ -125,7 +126,7 @@ public class MainActivity extends Activity {
 			@Override
 			public void onClick(View v) {
 				int speed = mSpeedBar.getProgress();
-				sendMotorCommand(Protocol.MotorCommand.Forward, speed);
+				sendMotorCommand(MotorMoveCommand.Command.Forward, speed);
 			}
 		});
 		
@@ -133,7 +134,7 @@ public class MainActivity extends Activity {
 			@Override
 			public void onClick(View v) {
 				int speed = mSpeedBar.getProgress();
-				sendMotorCommand(Protocol.MotorCommand.Backword, speed);
+				sendMotorCommand(MotorMoveCommand.Command.Backword, speed);
 			}
 		});
 		
@@ -141,7 +142,7 @@ public class MainActivity extends Activity {
 			@Override
 			public void onClick(View v) {
 				int speed = mSpeedBar.getProgress();
-				sendMotorCommand(Protocol.MotorCommand.Float, speed);
+				sendMotorCommand(MotorMoveCommand.Command.Float, speed);
 			}
 		});
 		
@@ -149,7 +150,7 @@ public class MainActivity extends Activity {
 			@Override
 			public void onClick(View v) {
 				int speed = mSpeedBar.getProgress();
-				sendMotorCommand(Protocol.MotorCommand.Stop, speed);
+				sendMotorCommand(MotorMoveCommand.Command.Stop, speed);
 			}
 		});
 		
@@ -159,7 +160,9 @@ public class MainActivity extends Activity {
 			@Override
 			public void onCheckedChanged(CompoundButton buttonView,
 					boolean isChecked) {
-				sendMotorCommand(Protocol.MotorCommand.Report, isChecked ? 1 : 0);
+				MotorReportCommand cmd = new MotorReportCommand();
+				cmd.setReportOn(isChecked);
+				mComm.send(cmd);
 				if (!isChecked) {
 					mTachoCount.setText("");
 				}
@@ -169,11 +172,10 @@ public class MainActivity extends Activity {
 		
 	}
 	
-	private void sendMotorCommand(Protocol.MotorCommand command, float speed) {
-        RobotCommand cmd = new RobotCommand();
-        cmd.setType(Protocol.Type.Motor);
-        cmd.setIntValue(command.ordinal());
-        cmd.setFloatValue(speed);
+	private void sendMotorCommand(MotorMoveCommand.Command command, float speed) {
+		MotorMoveCommand cmd = new MotorMoveCommand();
+		cmd.setCommand(command);
+		cmd.setSpeed(speed);
         this.mComm.send(cmd);
 	}
 	
@@ -194,9 +196,7 @@ public class MainActivity extends Activity {
 	}
 	
 	private void remoteFinish() {
-		RobotCommand cmd = new RobotCommand();
-		cmd.setType(Protocol.Type.Exit);
-		mComm.send(cmd);
+		mComm.send(ExitSignal.getInstance());
 	}
 
     /**
