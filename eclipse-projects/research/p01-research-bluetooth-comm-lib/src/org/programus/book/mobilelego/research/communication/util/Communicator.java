@@ -24,7 +24,7 @@ public class Communicator {
 	/**
 	 * 操作员接口，所有操作员类必须实现此接口，
 	 * 用以操作通讯员传来的消息。
-	 * @param <T> 操作员可处理的消息协议
+	 * @param <T> 操作员可处理的消息类型
 	 */
 	public static interface Processor<T extends NetMessage> {
 		void process(T msg, Communicator communicator);
@@ -62,12 +62,12 @@ public class Communicator {
 	}
 	
 	/**
-	 * 添加需要通讯员转发命令的操作员。
-	 * @param type 要追加的操作员可以处理的命令协议类型
+	 * 添加需要通讯员转发消息的操作员。
+	 * @param type 要追加的操作员可以处理的消息类型
 	 * @param processor 操作员对象
 	 */
 	public synchronized <M extends NetMessage> void addProcessor(Class<M> type, Processor<M> processor) {
-		// 从Map中取出此协议类型对应的操作员列表
+		// 从Map中取出此消息类型对应的操作员列表
 		List<Processor<? extends NetMessage>> processorList = processorMap.get(type.getName());
 		if (processorList == null) {
 			// 如果列表不存在，说明目前为止尚无此类型操作员被加入
