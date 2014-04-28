@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.programus.book.mobilelego.research.communication.protocol.ExitSignal;
-import org.programus.book.mobilelego.research.communication.protocol.Protocol;
+import org.programus.book.mobilelego.research.communication.protocol.NetMessage;
 
 /**
  * 通讯员类。
@@ -26,14 +26,14 @@ public class Communicator {
 	 * 用以操作通讯员传来的消息。
 	 * @param <T> 操作员可处理的消息协议
 	 */
-	public static interface Processor<T extends Protocol> {
+	public static interface Processor<T extends NetMessage> {
 		void process(T msg, Communicator communicator);
 	}
 
 	/** 存储所有操作员的Map。 */
-	private Map<String, List<Processor<? extends Protocol>>> 
+	private Map<String, List<Processor<? extends NetMessage>>> 
 		processorMap = 
-		new HashMap<String, List<Processor<? extends Protocol>>>();
+		new HashMap<String, List<Processor<? extends NetMessage>>>();
 
 	/** 读取消息用的输入流 */
 	private ObjectInputStream input;
@@ -66,13 +66,13 @@ public class Communicator {
 	 * @param type 要追加的操作员可以处理的命令协议类型
 	 * @param processor 操作员对象
 	 */
-	public synchronized <P extends Protocol> void addProcessor(Class<P> type, Processor<P> processor) {
+	public synchronized <M extends NetMessage> void addProcessor(Class<M> type, Processor<M> processor) {
 		// 从Map中取出此协议类型对应的操作员列表
-		List<Processor<? extends Protocol>> processorList = processorMap.get(type.getName());
+		List<Processor<? extends NetMessage>> processorList = processorMap.get(type.getName());
 		if (processorList == null) {
 			// 如果列表不存在，说明目前为止尚无此类型操作员被加入
 			// 创建列表
-			processorList = new LinkedList<Processor<? extends Protocol>>();
+			processorList = new LinkedList<Processor<? extends NetMessage>>();
 			// 将列表放入Map
 			processorMap.put(type.getName(), processorList);
 		}
@@ -84,7 +84,7 @@ public class Communicator {
 	 * 发送消息。
 	 * @param msg 消息
 	 */
-	public void send(Protocol msg) {
+	public void send(NetMessage msg) {
 		synchronized (output) {
 			try {
 				System.out.println(String.format("Send: %s", msg.toString()));
@@ -122,7 +122,7 @@ public class Communicator {
 							available = false;
 							break;
 						} else {
-                            Protocol cmd = (Protocol) o;
+                            NetMessage cmd = (NetMessage) o;
                             processReceived(cmd);
 						}
 					}
@@ -147,13 +147,13 @@ public class Communicator {
         }
 	}
 	
-	private <P extends Protocol> void processReceived(P cmd) {
+	private <M extends NetMessage> void processReceived(M cmd) {
 		if (cmd != null) {
-            List<Processor<? extends Protocol>> processorList = processorMap.get(cmd.getClass().getName());
+            List<Processor<? extends NetMessage>> processorList = processorMap.get(cmd.getClass().getName());
             if (processorList != null) {
-                for (Processor<? extends Protocol> processor : processorList) {
+                for (Processor<? extends NetMessage> processor : processorList) {
                 	@SuppressWarnings("unchecked")
-					Processor<P> p = (Processor<P>) processor;
+					Processor<M> p = (Processor<M>) processor;
                     p.process(cmd, this);
                 }
             }

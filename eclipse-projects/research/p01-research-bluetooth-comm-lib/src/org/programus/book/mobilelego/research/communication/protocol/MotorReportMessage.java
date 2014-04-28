@@ -1,6 +1,6 @@
 package org.programus.book.mobilelego.research.communication.protocol;
 
-public class MotorReportMessage implements Protocol {
+public class MotorReportMessage implements NetMessage {
 	private static final long serialVersionUID = -8702695106516789834L;
 	
 	private int tachoCount;

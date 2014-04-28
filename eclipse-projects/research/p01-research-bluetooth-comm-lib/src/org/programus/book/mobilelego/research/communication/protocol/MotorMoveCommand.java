@@ -1,6 +1,6 @@
 package org.programus.book.mobilelego.research.communication.protocol;
 
-public class MotorMoveCommand implements Protocol {
+public class MotorMoveCommand implements NetMessage {
 	public enum Command {
 		Forward,
 		Backword,

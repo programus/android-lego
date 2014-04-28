@@ -1,6 +1,6 @@
 package org.programus.book.mobilelego.research.communication.protocol;
 
-public class MotorReportCommand implements Protocol {
+public class MotorReportCommand implements NetMessage {
 	private static final long serialVersionUID = -3009205522237798520L;
 
 	private boolean reportOn;
