@@ -43,19 +43,35 @@ public class Communicator {
 	/** 标记接收线程是否仍活跃 */
 	private boolean available;
 	
+	/**
+	 * 默认构造函数
+	 */
 	public Communicator() {
 	}
 	
+	/**
+	 * 构造函数
+	 * @param input 输入流
+	 * @param output 输出流
+	 * @throws IOException 当创建输入输出流出错时抛出
+	 */
 	public Communicator(InputStream input, OutputStream output) throws IOException {
 		this.reset(input, output);
 	}
 	
+	/**
+	 * 使用新的输入输出流对象重设通讯员。此函数不会重设已添加的操作员信息。
+	 * @param input 输入流
+	 * @param output 输出流
+	 * @throws IOException 当创建输入输出流出错时抛出
+	 */
 	public synchronized void reset(InputStream input, OutputStream output) throws IOException {
 		if (this.available) {
 			this.finish();
 		}
 		this.available = true;
 		this.output = new ObjectOutputStream(output);
+		// 对ObjectOutputStream，必须在建立输出流后立即清空缓存，方能避免阻塞。
 		this.output.flush();
 		this.input = new ObjectInputStream(input);
 		this.startInputReadThread();
@@ -96,21 +112,34 @@ public class Communicator {
 		}
 	}
 	
+	/**
+	 * 建议通讯员结束工作。此函数不会强制关闭输入输出流。
+	 */
 	public void close() {
 		this.available = false;
 	}
 	
+	/**
+	 * 确认输入流读取线程仍在工作
+	 * @return 当输入流读取线程仍在工作时返回真
+	 */
 	public boolean isAvailable() {
 		return this.available;
 	}
 	
+	/**
+	 * 启动读取输入流的线程
+	 */
 	private void startInputReadThread() {
+		// 创建一个新线程
 		Thread t = new Thread(new Runnable() {
 			@Override
 			public void run() {
 				while (available) {
+					// 当通讯员未被关闭时，循环
 					Object o = null;
 					try {
+						// 读取消息
 						o = input.readObject();
 					} catch (Exception e) {
 						available = false;
@@ -119,20 +148,27 @@ public class Communicator {
 					if (o != null) {
 						System.out.println(String.format("Received: %s", o.toString()));
 						if (o instanceof ExitSignal) {
-							available = false;
+							// 如果消息为退出命令，则关闭通讯员
+							close();
+							// 退出循环
 							break;
 						} else {
-                            NetMessage cmd = (NetMessage) o;
-                            processReceived(cmd);
+                            NetMessage msg = (NetMessage) o;
+                            // 处理消息
+                            processReceived(msg);
 						}
 					}
 				}
 				finish();
 			}
 		}, "read-input");
+		// 启动线程
 		t.start();
 	}
 	
+	/**
+	 * 彻底结束通讯员工作，关闭输入输出流
+	 */
 	private synchronized void finish() {
 		this.available = false;
         try {
@@ -147,14 +183,23 @@ public class Communicator {
         }
 	}
 	
-	private <M extends NetMessage> void processReceived(M cmd) {
-		if (cmd != null) {
-            List<Processor<? extends NetMessage>> processorList = processorMap.get(cmd.getClass().getName());
+	/**
+	 * 将接收到的消息转给操作员处理
+	 * @param msg 接收到的消息
+	 */
+	private <M extends NetMessage> void processReceived(M msg) {
+		// 检查传入参数的有效性
+		if (msg != null) {
+			// 取出消息类型对应的操作员列表
+            List<Processor<? extends NetMessage>> processorList = processorMap.get(msg.getClass().getName());
             if (processorList != null) {
+            	// 当操作员列表存在时，循环所有操作员
                 for (Processor<? extends NetMessage> processor : processorList) {
+                	// 强制转换操作员类型为实际的类型
                 	@SuppressWarnings("unchecked")
 					Processor<M> p = (Processor<M>) processor;
-                    p.process(cmd, this);
+                	// 让操作员处理消息
+                    p.process(msg, this);
                 }
             }
 		}
