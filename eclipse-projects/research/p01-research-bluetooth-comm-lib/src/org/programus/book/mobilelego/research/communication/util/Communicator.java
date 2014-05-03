@@ -78,6 +78,25 @@ public class Communicator {
 	}
 	
 	/**
+	 * 清除操作员对象。
+	 * 当指定消息类时，清除指定类的操作员对象；
+	 * 当未指定消息类（消息类为null）时，清除所有操作员对象。
+	 * @param type 指定清楚操作员对象的消息类，为null时清除所有操作员
+	 */
+	public synchronized <M extends NetMessage> void clearProcessor(Class<M> type) {
+		if (type != null) {
+			// 如果指定了类型，则清楚指定类型中的所有操作员对象
+			List<Processor<? extends NetMessage>> processorList = processorMap.get(type.getName());
+			if (processorList != null) {
+                processorList.clear();
+			}
+		} else {
+			// 否则，清空操作员清单
+			processorMap.clear();
+		}
+	}
+	
+	/**
 	 * 添加需要通讯员转发消息的操作员。
 	 * @param type 要追加的操作员可以处理的消息类型
 	 * @param processor 操作员对象
