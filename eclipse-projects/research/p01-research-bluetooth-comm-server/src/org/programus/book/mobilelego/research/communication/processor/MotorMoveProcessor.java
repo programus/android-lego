@@ -7,10 +7,15 @@ import org.programus.book.mobilelego.research.communication.protocol.MotorMoveCo
 import org.programus.book.mobilelego.research.communication.util.Communicator;
 import org.programus.book.mobilelego.research.communication.util.Communicator.Processor;
 
-public class MotorMoveProcessor<M extends BaseRegulatedMotor> implements Processor<MotorMoveCommand> {
-	private M motor;
+/**
+ * 控制马达运转的操作员
+ * @author programus
+ */
+public class MotorMoveProcessor implements Processor<MotorMoveCommand> {
+	/** 需要控制的马达 */
+	private BaseRegulatedMotor motor;
 	
-	public MotorMoveProcessor(M motor) {
+	public MotorMoveProcessor(BaseRegulatedMotor motor) {
 		this.motor = motor;
 	}
 	

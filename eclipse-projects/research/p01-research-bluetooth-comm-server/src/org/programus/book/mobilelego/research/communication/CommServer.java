@@ -36,8 +36,8 @@ public class CommServer {
             GraphicsLCD.LEFT | GraphicsLCD.TOP);
 		try {
 			Communicator communicator = server.getCommunicator();
-			communicator.addProcessor(MotorMoveCommand.class, new MotorMoveProcessor<EV3LargeRegulatedMotor>(motor));
-			communicator.addProcessor(MotorReportCommand.class, new MotorReportProcessor<EV3LargeRegulatedMotor>(motor));
+			communicator.addProcessor(MotorMoveCommand.class, new MotorMoveProcessor(motor));
+			communicator.addProcessor(MotorReportCommand.class, new MotorReportProcessor(motor));
 		} catch (IOException e) {
 			Sound.buzz();
 		}
