@@ -1,5 +1,8 @@
 package org.programus.book.mobilelego.motion_rc_vehicle.server.core;
 
+import lejos.hardware.ev3.EV3;
+import lejos.hardware.ev3.LocalEV3;
+import lejos.hardware.motor.BaseRegulatedMotor;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.hardware.port.MotorPort;
 import lejos.hardware.port.SensorPort;
@@ -10,7 +13,10 @@ import lejos.robotics.SampleProvider;
 import lejos.robotics.filter.MeanFilter;
 
 public class VehicleRobot {
-	private RegulatedMotor[] wheelMotors = {
+	private final static float WHEEL_DIAMETER = 0.036f;
+	private final static float AXLE_TRACK = 0.11f;
+
+	private BaseRegulatedMotor[] wheelMotors = {
 			new EV3LargeRegulatedMotor(MotorPort.B),
 			new EV3LargeRegulatedMotor(MotorPort.C)
 	}; 
@@ -18,7 +24,9 @@ public class VehicleRobot {
 	private SensorModes distanceSensor; 
 	private SampleProvider distanceProvider; 
 	
-	private int distance;
+	private float speedLimit;
+	private double prevTachoCount;
+	private double distance;
 	private float speed;
 	
 	private static VehicleRobot inst = new VehicleRobot();
@@ -27,10 +35,16 @@ public class VehicleRobot {
 		final int SAMPLE_COUNT = 5;
 		this.distanceSensor = new EV3UltrasonicSensor(SensorPort.S3);
 		this.distanceProvider = new MeanFilter(this.distanceSensor.getMode("Distance"), SAMPLE_COUNT);
+		EV3 ev3 = LocalEV3.get();
+		speedLimit = ev3.getPower().getVoltage() * 100;
 	}
 	
-	private float getAverageTachoCount() {
-		float avg = 0;
+	public static VehicleRobot getInstance() {
+		return inst;
+	}
+	
+	private double getAverageTachoCount() {
+		double avg = 0;
 		int t = 0;
 		for (RegulatedMotor motor : this.wheelMotors) {
 			avg += (motor.getTachoCount() - avg) / ++t;
@@ -38,27 +52,75 @@ public class VehicleRobot {
 		return avg;
 	}
 	
-	public static VehicleRobot getInstance() {
-		return inst;
+	private void updateDistance() {
+		double tachoCount = getAverageTachoCount();
+		this.distance += Math.abs(tachoCount - prevTachoCount) * Math.PI * WHEEL_DIAMETER / 360;
+		prevTachoCount = tachoCount;
+	}
+	
+	private float adjustSpeed(float speed) {
+		if (Math.abs(speed) > speedLimit) {
+			speed = speed > 0 ? speedLimit : -speedLimit;
+		}
+		return speed;
 	}
 
 	public void forward(float speed, double angle) {
+		if (Math.signum(speed) != Math.signum(this.speed)) {
+			updateDistance();
+		}
 		
+		speed = adjustSpeed(speed);
+		
+		float dv = (float) Math.toDegrees(angle * AXLE_TRACK / WHEEL_DIAMETER);
+		float baseSpeed = Math.abs(speed);
+		float[] speeds = { baseSpeed + dv, baseSpeed - dv};
+		for (int i = 0; i < speeds.length; i++) {
+			float x = speeds[i];
+			float adv = Math.abs(dv);
+			if (Math.abs(x) > speedLimit) {
+				speeds[i] = x > 0 ? speedLimit : -speedLimit;
+				speeds[~i] = x > 0 ? speedLimit - adv : -speedLimit + adv;
+			}
+		}
+
+		for (int i = 0; i < wheelMotors.length; i++) {
+			BaseRegulatedMotor motor = wheelMotors[i];
+			float sp = speeds[i];
+			motor.setSpeed(sp);
+			if (sp >= 0) {
+				motor.forward();
+			} else {
+				motor.backward();
+			}
+		}
 	}
 	
 	public void backword(float speed, double angle) {
 		this.forward(-speed, angle);
 	}
 	
-	public int getSpeed() {
-		return 0;
+	public void flt() {
+		for (BaseRegulatedMotor motor : wheelMotors) {
+			motor.flt(true);
+		}
 	}
 	
-	public int getRotateSpeed() {
-		return 0;
+	public void stop() {
+		for (BaseRegulatedMotor motor : wheelMotors) {
+			motor.stop(true);
+		}
 	}
 	
-	public int getDistance() {
+	public double getSpeed() {
+		return getRotationalSpeed() * Math.PI * WHEEL_DIAMETER;
+	}
+	
+	public double getRotationalSpeed() {
+		return (wheelMotors[0].getRotationSpeed() + wheelMotors[1].getRotationSpeed()) / 2. / 360;
+	}
+	
+	public double getDistance() {
 		return distance;
 	}
 	
