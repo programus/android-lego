@@ -166,15 +166,14 @@ public class Communicator {
 					}
 					if (o != null) {
 						System.out.println(String.format("Received: %s", o.toString()));
+                        NetMessage msg = (NetMessage) o;
+                        // 处理消息
+                        processReceived(msg);
 						if (o instanceof ExitSignal) {
 							// 如果消息为退出命令，则关闭通讯员
 							close();
 							// 退出循环
 							break;
-						} else {
-                            NetMessage msg = (NetMessage) o;
-                            // 处理消息
-                            processReceived(msg);
 						}
 					}
 				}

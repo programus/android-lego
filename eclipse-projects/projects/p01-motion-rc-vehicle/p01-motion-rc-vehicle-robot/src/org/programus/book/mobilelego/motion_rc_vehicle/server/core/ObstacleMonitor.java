@@ -3,6 +3,7 @@ package org.programus.book.mobilelego.motion_rc_vehicle.server.core;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ExitSignal;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ObstacleInforMessage;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.util.Communicator;
 
@@ -17,6 +18,12 @@ public class ObstacleMonitor {
 	public ObstacleMonitor(VehicleRobot robot, Communicator communicator) {
 		this.robot = robot;
 		this.communicator = communicator;
+		this.communicator.addProcessor(ExitSignal.class, new Communicator.Processor<ExitSignal>() {
+			@Override
+			public void process(ExitSignal msg, Communicator communicator) {
+				stopReporting();
+			}
+		});
 	}
 	
 	private ObstacleInforMessage sendReport(ObstacleInforMessage prevMsg) {
