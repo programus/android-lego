@@ -2,4 +2,32 @@
 
     <string name="app_name">Vehicle Remote Control</string>
 
+    <string name="gear_forward">Forward</string>
+
+    <string name="gear_backward">Backward</string>
+
+    <string name="gears">Gears</string>
+
+    <string name="vehicle_break">Break</string>
+
+    <string name="rotation_speed">RPM</string>
+
+    <string name="speed">Speed</string>
+
+    <string name="distance">Distance</string>
+
+    <string name="rotation_speed_format">%.3f rpm</string>
+
+    <string name="speed_format">%.3f m/s</string>
+
+    <string name="distance_format">.3f m</string>
+
+    <string name="obstacle_distance">Obstacle Distance</string>
+    <string name="msg_bluetooth_not_supported">Bluetooth is not supported on this device!</string>
+    <string name="msg_bluetooth_is_necessary">Bluetooth is necessary for this application.</string>
+    <string name="msg_bluetooth_pair_necessary">Please pair your EV3 device first.</string>
+    <string name="title_select_device">Please select a device:</string>
+    <string name="prompt_connect">↗ \n Click [Connect]!</string>
+    <string name="up_arrow">↑</string>
+
 </resources>

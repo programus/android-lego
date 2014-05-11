@@ -16,5 +16,8 @@
     <style name="AppTheme" parent="AppBaseTheme">
         <!-- All customizations that are NOT specific to a particular API-level can go here. -->
     </style>
+    <color name="title_background">#ccc</color>
+    <color name="cover_color">#ccffffff</color>
+    <color name="prompt_connect">#ffee7000</color>
 
 </resources>

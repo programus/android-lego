@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android" >
+    <item android:id="@+id/bt_connect" android:title="Connect" android:icon="@drawable/ic_action_bluetooth" android:showAsAction="always|withText"></item>
+    <item android:id="@+id/bt_connecting" android:title="Connecting..." android:icon="@drawable/ic_action_bluetooth_searching" android:visible="false" android:showAsAction="always|withText" android:enabled="false"></item>
+    <item android:id="@+id/bt_disconnect" android:visible="false" android:title="Disconnect" android:showAsAction="always|withText" android:icon="@drawable/ic_action_bluetooth_connected"></item>
+    
+
+</menu>
