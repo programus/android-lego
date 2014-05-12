@@ -19,14 +19,19 @@
         android:orientation="vertical"
         android:paddingBottom="@dimen/vertical_padding" >
 
+        <TextView
+            android:id="@+id/header_rotation_angle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@color/title_background"
+            android:paddingLeft="@dimen/horizontal_padding"
+            android:text="@string/rotation_angle"
+            android:textAppearance="?android:attr/textAppearanceMedium" />
+
         <SurfaceView
             android:id="@+id/rotate_angle_view"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_marginBottom="@dimen/horizontal_padding"
-            android:layout_marginLeft="@dimen/horizontal_padding"
-            android:layout_marginRight="@dimen/horizontal_padding"
-            android:layout_marginTop="@dimen/vertical_padding"
             android:layout_weight="1" />
 
         <TextView

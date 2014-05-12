@@ -29,5 +29,6 @@
     <string name="title_select_device">Please select a device:</string>
     <string name="prompt_connect">↗ \n Click [Connect]!</string>
     <string name="up_arrow">↑</string>
+    <string name="rotation_angle">Rotation</string>
 
 </resources>

@@ -3,6 +3,8 @@ package org.programus.book.mobilelego.motion_rc_vehicle.rc.activities;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ExitSignal;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.util.Communicator;
@@ -15,15 +17,28 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Canvas;
+import android.graphics.Paint;
+import android.graphics.PointF;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.text.Html;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.Surface;
+import android.view.SurfaceHolder;
+import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.VerticalSeekBar;
 
 public class MainActivity extends Activity {
 	private static final int REQUEST_ENABLE_BT = 5;
@@ -40,7 +55,15 @@ public class MainActivity extends Activity {
 	
 	private SppClient mClient;
 	private Communicator mComm;
+	
+	private SensorManager mSensorManager;
+	private Sensor mGravity;
+	private SensorEventListener mSensorListener;
+	private double mRotateAngle;
 
+	private SurfaceView mRotateAngleView;
+	private SurfaceHolder mRotateAngleHolder;
+	private VerticalSeekBar mSpeedBar;
 	private ViewGroup mCover;
 	private TextView mLog;
 
@@ -49,14 +72,153 @@ public class MainActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		this.setContentView(R.layout.main_activity);
 		this.initComponents();
+		this.initSensor();
+	}
+	
+	/**
+	 * 初始化传感器
+	 */
+	private void initSensor() {
+		mSensorManager = (SensorManager) this.getSystemService(SENSOR_SERVICE);
+		mGravity = mSensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
+		mSensorListener = new SensorEventListener() {
+            @Override
+            public void onSensorChanged(SensorEvent event) {
+                // 取得界面旋转信息
+                int rotation = getWindowManager().getDefaultDisplay().getRotation();
+                float g = 0;
+                switch (rotation) {
+                case Surface.ROTATION_0:
+                    // 界面无旋转，取x轴方向分量
+                    // 右转为正，数据取反
+                    g = -event.values[0];
+                    break;
+                case Surface.ROTATION_90:
+                    // 界面逆时针90度旋转，取y轴分量
+                    g = event.values[1];
+                    break;
+                case Surface.ROTATION_180:
+                    // 界面旋转180度，取x轴方向分量
+                    g = event.values[0];
+                    break;
+                case Surface.ROTATION_270:
+                    // 界面逆时针旋转270度，取y轴分量
+                    // 右转为正，数据取反
+                    g = -event.values[1];
+                    break;
+                }
+                mRotateAngle = Math.asin(g / SensorManager.GRAVITY_EARTH);
+            }
+
+			@Override
+			public void onAccuracyChanged(Sensor sensor, int accuracy) {
+				// 我们不关心精度的变化，不做任何事
+			}
+		};
 	}
 
 	/**
 	 * 初始化界面控件
 	 */
 	private void initComponents() {
+		this.mRotateAngleView = (SurfaceView) this.findViewById(R.id.rotate_angle_view);
+		this.mRotateAngleHolder = mRotateAngleView.getHolder();
+
+		this.mSpeedBar = (VerticalSeekBar) this.findViewById(R.id.speed_bar);
 		this.mCover = (ViewGroup) this.findViewById(R.id.all);
 		this.mLog = (TextView) this.findViewById(R.id.log);
+		
+		mRotateAngleHolder.addCallback(new SurfaceHolder.Callback() {
+			private Timer timer = new Timer("angle surface draw");
+			private TimerTask task;
+
+			private PointF center = new PointF();
+			private float radius;
+			@Override
+			public void surfaceDestroyed(SurfaceHolder holder) {
+				task.cancel();
+				timer.purge();
+			}
+			
+			@Override
+			public void surfaceCreated(final SurfaceHolder holder) {
+				task = new TimerTask() {
+					@Override
+					public void run() {
+                        Canvas canvas = holder.lockCanvas();
+                        if (canvas != null) {
+                            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+                            paint.setStrokeCap(Paint.Cap.ROUND);
+                            paint.setStrokeWidth(3);
+                            
+                            canvas.drawARGB(0xff, 0xee, 0xee, 0xde);
+                            
+                            canvas.save();
+                            
+                            canvas.rotate((float)Math.toDegrees(-mRotateAngle), center.x, center.y);
+                            paint.setColor(0xff5588aa);
+                            paint.setStyle(Paint.Style.STROKE);
+                            canvas.drawLine(center.x, center.y, center.x, center.y - radius + 3, paint);
+                            canvas.drawCircle(center.x, center.y, radius - 3, paint);
+                            int step = 30;
+                            for (int i = 0; i < 360; i+= step) {
+                            	canvas.rotate(step, center.x, center.y);
+                            	canvas.drawLine(center.x, center.y - radius + 8, center.x, center.y - radius + 3, paint);
+                            }
+                            
+                            canvas.restore();
+
+                            paint.setStyle(Paint.Style.FILL);
+                            paint.setColor(0xcccccccc);
+                            canvas.drawRect(center.x * 0.75f, center.y * 0.7f, center.x * 1.25f, center.y * 1.3f, paint);
+                            canvas.drawRect(center.x * 0.55f, center.y * 0.65f, center.x * 0.73f, center.y * 1.35f, paint);
+                            canvas.drawRect(center.x * 1.45f, center.y * 0.657f, center.x * 1.27f, center.y * 1.35f, paint);
+                            canvas.drawRect(center.x * 0.8f, center.y * 0.5f, center.x * 1.2f, center.y * 0.6f, paint);
+                            canvas.drawRect(center.x * 0.92f, center.y * 0.6f, center.x * 1.08f, center.y * 0.7f, paint);
+                            paint.setColor(0x77ffffff);
+                            canvas.drawRect(center.x * 0.82f, center.y * 0.77f, center.x * 1.18f, center.y * 0.95f, paint);
+                            paint.setStyle(Paint.Style.STROKE);
+                            paint.setColor(0xffff9900);
+                            canvas.drawLine(center.x, center.y, center.x, center.y - radius + 10, paint);
+                            canvas.drawLine(center.x - 2, center.y - radius + 20, center.x, center.y - radius + 10, paint);
+                            canvas.drawLine(center.x + 2, center.y - radius + 20, center.x, center.y - radius + 10, paint);
+
+                            mRotateAngleHolder.unlockCanvasAndPost(canvas);
+                        }
+					}
+				};
+				timer.schedule(task, 0, 1000 / 25);
+			}
+			
+			@Override
+			public void surfaceChanged(SurfaceHolder holder, int format, int width,
+					int height) {
+				center.x = width / 2.f;
+				center.y = height /2.f;
+				radius = Math.min(center.x, center.y);
+			}
+		});
+		
+		mSpeedBar.setMax(100);
+		mSpeedBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress,
+					boolean fromUser) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {
+				// TODO Auto-generated method stub
+				
+			}
+
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar) {
+				seekBar.setProgress(0);
+			}
+		});
 		
 		mCover.setVisibility(View.VISIBLE);
 		this.mClient = new SppClient();
@@ -285,13 +447,15 @@ public class MainActivity extends Activity {
 
 	@Override
 	protected void onResume() {
-		// TODO Auto-generated method stub
 		super.onResume();
+		// 注册传感器事件监听器
+		mSensorManager.registerListener(mSensorListener, mGravity, SensorManager.SENSOR_DELAY_GAME);
 	}
 
 	@Override
 	protected void onPause() {
-		// TODO Auto-generated method stub
 		super.onPause();
+		// 解除传感器时间监听器
+		mSensorManager.unregisterListener(mSensorListener);
 	}
 }
