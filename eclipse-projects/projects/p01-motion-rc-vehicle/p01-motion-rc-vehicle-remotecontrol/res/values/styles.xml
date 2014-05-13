@@ -19,5 +19,8 @@
     <color name="title_background">#ccc</color>
     <color name="cover_color">#ccffffff</color>
     <color name="prompt_connect">#ffee7000</color>
+    <color name="obstacle_normal_color">#ff00cf00</color>
+    <color name="obstacle_warning_color">#ffeecc00</color>
+    <color name="obstacle_danger_color">#ffaa2222</color>
 
 </resources>

@@ -78,7 +78,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/horizontal_padding"
-            android:layout_marginTop="@dimen/horizontal_padding"
+            android:background="@color/obstacle_normal_color"
             android:paddingBottom="@dimen/horizontal_padding"
             android:paddingLeft="@dimen/horizontal_padding"
             android:paddingRight="@dimen/horizontal_padding"
@@ -89,6 +89,15 @@
                 android:layout_height="wrap_content"
                 android:text="@string/obstacle_distance"
                 android:textAppearance="?android:attr/textAppearanceLarge" />
+
+            <TextView
+                android:id="@+id/obstacle_distance"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="right"
+                android:text="@string/distance_format"
+                android:textAppearance="?android:attr/textAppearanceLarge" />
+
         </LinearLayout>
 
         <RelativeLayout
@@ -236,7 +245,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/cover_color"
-    android:clickable="true" >
+    android:clickable="true"
+    android:visibility="invisible" >
 
     <TextView
         android:layout_width="wrap_content"

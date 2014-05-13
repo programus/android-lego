@@ -34,6 +34,9 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
+import android.widget.ProgressBar;
+import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.TextView;
@@ -43,19 +46,20 @@ import android.widget.VerticalSeekBar;
 public class MainActivity extends Activity {
 	private static final int REQUEST_ENABLE_BT = 5;
 
-	private BluetoothAdapter mBtAdapter;
-	private BluetoothDevice[] mDevices;
-	
 	private static enum BtConnectState {
 		Disconnected,
 		Connecting,
 		Connected
 	};
+
 	private BtConnectState mBtConnectState = BtConnectState.Disconnected;
-	
+
+	private BluetoothAdapter mBtAdapter;
+	private BluetoothDevice[] mDevices;
+
 	private SppClient mClient;
 	private Communicator mComm;
-	
+
 	private SensorManager mSensorManager;
 	private Sensor mGravity;
 	private SensorEventListener mSensorListener;
@@ -63,7 +67,20 @@ public class MainActivity extends Activity {
 
 	private SurfaceView mRotateAngleView;
 	private SurfaceHolder mRotateAngleHolder;
-	private VerticalSeekBar mSpeedBar;
+
+	private ProgressBar mRotationSpeedBar;
+	private TextView mRotationSpeedText;
+	private ProgressBar mSpeedBar;
+	private TextView mSpeedText;
+	private TextView mDistanceText;
+
+	private ViewGroup mObstaclePart;
+	private TextView mObstacleText;
+
+	private RadioGroup mGears;
+	private VerticalSeekBar mEngineBar;
+	private Button mBreak;
+
 	private ViewGroup mCover;
 	private TextView mLog;
 
@@ -124,7 +141,7 @@ public class MainActivity extends Activity {
 		this.mRotateAngleView = (SurfaceView) this.findViewById(R.id.rotate_angle_view);
 		this.mRotateAngleHolder = mRotateAngleView.getHolder();
 
-		this.mSpeedBar = (VerticalSeekBar) this.findViewById(R.id.speed_bar);
+		this.mEngineBar = (VerticalSeekBar) this.findViewById(R.id.speed_bar);
 		this.mCover = (ViewGroup) this.findViewById(R.id.all);
 		this.mLog = (TextView) this.findViewById(R.id.log);
 		
@@ -199,8 +216,8 @@ public class MainActivity extends Activity {
 			}
 		});
 		
-		mSpeedBar.setMax(100);
-		mSpeedBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+		mEngineBar.setMax(100);
+		mEngineBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int progress,
 					boolean fromUser) {
