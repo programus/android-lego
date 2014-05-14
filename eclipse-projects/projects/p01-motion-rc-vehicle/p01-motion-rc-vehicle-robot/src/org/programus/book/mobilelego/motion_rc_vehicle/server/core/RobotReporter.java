@@ -4,18 +4,18 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ExitSignal;
-import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ObstacleInforMessage;
+import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.RobotReportMessage;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.util.Communicator;
 
-public class ObstacleMonitor {
-	private static final int ITERVAL = 1000 / 40;
+public class RobotReporter {
+	private static final int ITERVAL = 100;
 	private VehicleRobot robot;
 	private Communicator communicator;
 	
-	private Timer timer = new Timer("distance reporter", true);
+	private Timer timer = new Timer("robot reporter", true);
 	private TimerTask task; 
 	
-	public ObstacleMonitor(VehicleRobot robot, Communicator communicator) {
+	public RobotReporter(VehicleRobot robot, Communicator communicator) {
 		this.robot = robot;
 		this.communicator = communicator;
 		this.communicator.addProcessor(ExitSignal.class, new Communicator.Processor<ExitSignal>() {
@@ -26,27 +26,37 @@ public class ObstacleMonitor {
 		});
 	}
 	
-	private ObstacleInforMessage sendReport(ObstacleInforMessage prevMsg) {
-		ObstacleInforMessage msg = prevMsg;
-		float distance = robot.getObstacleDistance();
-		if (msg == null || distance != prevMsg.getDistance()) {
-			msg = new ObstacleInforMessage();
+	private RobotReportMessage sendReport(RobotReportMessage prevMsg) {
+		RobotReportMessage msg = prevMsg;
+		double distance = robot.getDistance();
+		double speed = robot.getSpeed();
+		double rotationalSpeed = robot.getRotationalSpeed();
+		if (msg == null || distance != prevMsg.getDistance() || speed != prevMsg.getSpeed() || rotationalSpeed != prevMsg.getRotationalSpeed()) {
+			msg = new RobotReportMessage();
 			msg.setDistance(distance);
+			msg.setSpeed(speed);
+			msg.setRotationalSpeed(rotationalSpeed);
 			communicator.send(msg);
 		}
 		return msg;
 	}
 	
+	private void sendMaxReport() {
+		RobotReportMessage msg = new RobotReportMessage();
+		msg.setDistance(0);
+		msg.setSpeed(robot.getMaxSpeed());
+		msg.setRotationalSpeed(robot.getMaxRotationSpeed());
+		communicator.send(msg);
+	}
+	
 	public void startReporting() {
+		sendMaxReport();
 		if (task == null) {
 			task = new TimerTask() {
-				private ObstacleInforMessage prevMsg;
+				private RobotReportMessage prevMsg;
 				@Override
 				public void run() {
 					prevMsg = sendReport(prevMsg);
-					if (ObstacleInforMessage.Type.Danger.equals(prevMsg.getType()) && robot.getRotationalSpeed() > 0) {
-						robot.stop();
-					}
 				}
 			};
 			timer.schedule(task, 0, ITERVAL);

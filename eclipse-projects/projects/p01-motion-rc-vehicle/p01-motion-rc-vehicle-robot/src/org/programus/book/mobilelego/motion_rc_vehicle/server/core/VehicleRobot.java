@@ -112,12 +112,24 @@ public class VehicleRobot {
 		}
 	}
 	
+	private double getSpeed(double rotationSpeed) {
+		return rotationSpeed * Math.PI * WHEEL_DIAMETER;
+	}
+	
 	public double getSpeed() {
-		return getRotationalSpeed() * Math.PI * WHEEL_DIAMETER;
+		return this.getSpeed(this.getRotationalSpeed());
+	}
+	
+	public double getMaxSpeed() {
+		return this.getSpeed(this.getMaxRotationSpeed());
 	}
 	
 	public double getRotationalSpeed() {
 		return (wheelMotors[0].getRotationSpeed() + wheelMotors[1].getRotationSpeed()) / 2. / 360;
+	}
+	
+	public double getMaxRotationSpeed() {
+		return speedLimit / 360;
 	}
 	
 	public double getDistance() {

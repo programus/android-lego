@@ -7,9 +7,13 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ExitSignal;
+import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ObstacleInforMessage;
+import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.RobotReportMessage;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.util.Communicator;
 import org.programus.book.mobilelego.motion_rc_vehicle.rc.R;
 import org.programus.book.mobilelego.motion_rc_vehicle.rc.net.SppClient;
+import org.programus.book.mobilelego.motion_rc_vehicle.rc.processors.ObstacleInforProcessor;
+import org.programus.book.mobilelego.motion_rc_vehicle.rc.processors.RobotReportProcessor;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -17,6 +21,7 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PointF;
@@ -45,6 +50,7 @@ import android.widget.VerticalSeekBar;
 
 public class MainActivity extends Activity {
 	private static final int REQUEST_ENABLE_BT = 5;
+	private static final int MAX_ENGINE_SPEED = 800;
 
 	private static enum BtConnectState {
 		Disconnected,
@@ -59,6 +65,9 @@ public class MainActivity extends Activity {
 
 	private SppClient mClient;
 	private Communicator mComm;
+	
+	private RobotReportProcessor mReportProcessor;
+	private ObstacleInforProcessor mObstacleProcessor;
 
 	private SensorManager mSensorManager;
 	private Sensor mGravity;
@@ -80,16 +89,78 @@ public class MainActivity extends Activity {
 	private RadioGroup mGears;
 	private VerticalSeekBar mEngineBar;
 	private Button mBreak;
+	private TextView mEngineSetSpeed;
 
 	private ViewGroup mCover;
 	private TextView mLog;
+	
+	public MainActivity() {
+		initProcessors();
+	}
+	
+	private void initProcessors() {
+		this.mReportProcessor = new RobotReportProcessor();
+		this.mReportProcessor.setReportCallback(new RobotReportProcessor.ReportCallback() {
+			@Override
+			public void displayReport(final RobotReportMessage msg) {
+				runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						updateRobotReport(msg);
+					}
+				});
+			}
+		});
+		
+		this.mObstacleProcessor = new ObstacleInforProcessor();
+		this.mObstacleProcessor.setCallback(new ObstacleInforProcessor.Callback() {
+			@Override
+			public void displayObstacleInfor(final ObstacleInforMessage msg) {
+				runOnUiThread(new Runnable() {
+					@Override
+					public void run() {
+						updateObstacleInfor(msg);
+					}
+				});
+			}
+		});
+	}
+
+	/**
+	 * 初始化界面控件
+	 */
+	private void initComponents() {
+		this.mRotateAngleView = (SurfaceView) this.findViewById(R.id.rotate_angle_view);
+		this.mRotateAngleHolder = mRotateAngleView.getHolder();
+		
+		this.mRotationSpeedBar = (ProgressBar) this.findViewById(R.id.rotation_speed_progress);
+		this.mRotationSpeedText = (TextView) this.findViewById(R.id.rotation_speed_text);
+		this.mSpeedBar = (ProgressBar) this.findViewById(R.id.speed_progress);
+		this.mSpeedText = (TextView) this.findViewById(R.id.speed_text);
+		this.mDistanceText = (TextView) this.findViewById(R.id.distance_text);
+		
+		this.mObstaclePart = (ViewGroup) this.findViewById(R.id.obstacle_part);
+		this.mObstacleText = (TextView) this.findViewById(R.id.obstacle_distance);
+		
+		this.mGears = (RadioGroup) this.findViewById(R.id.gears);
+		this.mEngineBar = (VerticalSeekBar) this.findViewById(R.id.engine_bar);
+		this.mBreak = (Button) this.findViewById(R.id.engine_break);
+		this.mEngineSetSpeed = (TextView) this.findViewById(R.id.set_speed);
+
+		this.mCover = (ViewGroup) this.findViewById(R.id.all);
+		this.mLog = (TextView) this.findViewById(R.id.log);
+
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		this.setContentView(R.layout.main_activity);
+
 		this.initComponents();
 		this.initSensor();
+		this.setupComponents();
+		this.initNetClient();
 	}
 	
 	/**
@@ -133,18 +204,81 @@ public class MainActivity extends Activity {
 			}
 		};
 	}
-
-	/**
-	 * 初始化界面控件
-	 */
-	private void initComponents() {
-		this.mRotateAngleView = (SurfaceView) this.findViewById(R.id.rotate_angle_view);
-		this.mRotateAngleHolder = mRotateAngleView.getHolder();
-
-		this.mEngineBar = (VerticalSeekBar) this.findViewById(R.id.speed_bar);
-		this.mCover = (ViewGroup) this.findViewById(R.id.all);
-		this.mLog = (TextView) this.findViewById(R.id.log);
-		
+	
+	private void initNetClient() {
+		this.mClient = new SppClient();
+		this.mClient.setOnConnectedListener(new SppClient.OnConnectedListener() {
+			@Override
+			public void onFailed(Exception e) {
+				appendLog(e);
+			}
+			
+			@Override
+			public void onConnected(Communicator comm) {
+				try {
+                    appendLog("Connected");
+                    mComm = comm;
+                    
+                    mComm.addProcessor(RobotReportMessage.class, mReportProcessor);
+                    mComm.addProcessor(ObstacleInforMessage.class, mObstacleProcessor);
+                    
+					appendLog("Communicator ready.");
+					runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+                            setBtConnectState(BtConnectState.Connected);
+						}
+					});
+				} catch (Exception e) {
+					appendLog(e);
+				}
+			}
+		});
+	}
+	
+	private void updateRobotReport(RobotReportMessage msg) {
+		final int RSPEED_RATE = 1000 * 60;
+		final int SPEED_RATE = 1000;
+		double distance = msg.getDistance();
+		if (distance == 0) {
+			this.mRotationSpeedBar.setMax((int)(msg.getRotationalSpeed() * RSPEED_RATE));
+			this.mSpeedBar.setMax((int)(msg.getSpeed() * SPEED_RATE));
+		} else {
+			double rspeed = msg.getRotationalSpeed();
+			double speed = msg.getSpeed();
+			this.mRotationSpeedBar.setProgress((int)(rspeed * RSPEED_RATE));
+			this.mRotationSpeedText.setText(this.getString(R.string.rotation_speed_format, rspeed));
+			this.mSpeedBar.setProgress((int)(speed * SPEED_RATE));
+			this.mSpeedText.setText(this.getString(R.string.speed_format, speed));
+			this.mDistanceText.setText(this.getString(R.string.distance_format, distance));
+		}
+	}
+	
+	private void updateObstacleInfor(ObstacleInforMessage msg) {
+		float distance = msg.getDistance();
+		this.mObstacleText.setText(this.getString(R.string.distance_format, distance));
+		int colorId = R.color.obstacle_safe_color;
+		switch (msg.getType()) {
+		case Safe:
+			colorId = R.color.obstacle_safe_color;
+			break;
+		case Warning:
+			colorId = R.color.obstacle_warning_color;
+			break;
+		case Danger:
+			colorId = R.color.obstacle_danger_color;
+			break;
+		}
+		this.mObstaclePart.setBackgroundResource(colorId);
+	}
+	
+	private void setupComponents() {
+		this.setupRotateAngleSurface();
+		this.setupPowerControl();
+		mCover.setVisibility(View.VISIBLE);
+	}
+	
+	private void setupRotateAngleSurface() {
 		mRotateAngleHolder.addCallback(new SurfaceHolder.Callback() {
 			private Timer timer = new Timer("angle surface draw");
 			private TimerTask task;
@@ -164,43 +298,8 @@ public class MainActivity extends Activity {
 					public void run() {
                         Canvas canvas = holder.lockCanvas();
                         if (canvas != null) {
-                            Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
-                            paint.setStrokeCap(Paint.Cap.ROUND);
-                            paint.setStrokeWidth(3);
-                            
-                            canvas.drawARGB(0xff, 0xee, 0xee, 0xde);
-                            
-                            canvas.save();
-                            
-                            canvas.rotate((float)Math.toDegrees(-mRotateAngle), center.x, center.y);
-                            paint.setColor(0xff5588aa);
-                            paint.setStyle(Paint.Style.STROKE);
-                            canvas.drawLine(center.x, center.y, center.x, center.y - radius + 3, paint);
-                            canvas.drawCircle(center.x, center.y, radius - 3, paint);
-                            int step = 30;
-                            for (int i = 0; i < 360; i+= step) {
-                            	canvas.rotate(step, center.x, center.y);
-                            	canvas.drawLine(center.x, center.y - radius + 8, center.x, center.y - radius + 3, paint);
-                            }
-                            
-                            canvas.restore();
-
-                            paint.setStyle(Paint.Style.FILL);
-                            paint.setColor(0xcccccccc);
-                            canvas.drawRect(center.x * 0.75f, center.y * 0.7f, center.x * 1.25f, center.y * 1.3f, paint);
-                            canvas.drawRect(center.x * 0.55f, center.y * 0.65f, center.x * 0.73f, center.y * 1.35f, paint);
-                            canvas.drawRect(center.x * 1.45f, center.y * 0.657f, center.x * 1.27f, center.y * 1.35f, paint);
-                            canvas.drawRect(center.x * 0.8f, center.y * 0.5f, center.x * 1.2f, center.y * 0.6f, paint);
-                            canvas.drawRect(center.x * 0.92f, center.y * 0.6f, center.x * 1.08f, center.y * 0.7f, paint);
-                            paint.setColor(0x77ffffff);
-                            canvas.drawRect(center.x * 0.82f, center.y * 0.77f, center.x * 1.18f, center.y * 0.95f, paint);
-                            paint.setStyle(Paint.Style.STROKE);
-                            paint.setColor(0xffff9900);
-                            canvas.drawLine(center.x, center.y, center.x, center.y - radius + 10, paint);
-                            canvas.drawLine(center.x - 2, center.y - radius + 20, center.x, center.y - radius + 10, paint);
-                            canvas.drawLine(center.x + 2, center.y - radius + 20, center.x, center.y - radius + 10, paint);
-
-                            mRotateAngleHolder.unlockCanvasAndPost(canvas);
+                        	drawVehicleAngle(canvas, center, radius, mRotateAngle);
+                            holder.unlockCanvasAndPost(canvas);
                         }
 					}
 				};
@@ -215,52 +314,64 @@ public class MainActivity extends Activity {
 				radius = Math.min(center.x, center.y);
 			}
 		});
-		
-		mEngineBar.setMax(100);
+	}
+	
+	private void drawVehicleAngle(Canvas canvas, PointF center, float radius, double angle) {
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setStrokeCap(Paint.Cap.ROUND);
+        paint.setStrokeWidth(3);
+        
+        canvas.drawARGB(0xff, 0xee, 0xee, 0xde);
+        
+        canvas.save();
+        
+        canvas.rotate((float)Math.toDegrees(-angle), center.x, center.y);
+        paint.setColor(0xff5588aa);
+        paint.setStyle(Paint.Style.STROKE);
+        canvas.drawLine(center.x, center.y, center.x, center.y - radius + 3, paint);
+        canvas.drawCircle(center.x, center.y, radius - 3, paint);
+        int step = 30;
+        for (int i = 0; i < 360; i+= step) {
+            canvas.rotate(step, center.x, center.y);
+            canvas.drawLine(center.x, center.y - radius + 8, center.x, center.y - radius + 3, paint);
+        }
+        
+        canvas.restore();
+
+        paint.setStyle(Paint.Style.FILL);
+        paint.setColor(0xcccccccc);
+        canvas.drawRect(center.x * 0.75f, center.y * 0.7f, center.x * 1.25f, center.y * 1.3f, paint);
+        canvas.drawRect(center.x * 0.55f, center.y * 0.65f, center.x * 0.73f, center.y * 1.35f, paint);
+        canvas.drawRect(center.x * 1.45f, center.y * 0.657f, center.x * 1.27f, center.y * 1.35f, paint);
+        canvas.drawRect(center.x * 0.8f, center.y * 0.5f, center.x * 1.2f, center.y * 0.6f, paint);
+        canvas.drawRect(center.x * 0.92f, center.y * 0.6f, center.x * 1.08f, center.y * 0.7f, paint);
+        paint.setColor(0x77ffffff);
+        canvas.drawRect(center.x * 0.82f, center.y * 0.77f, center.x * 1.18f, center.y * 0.95f, paint);
+        paint.setStyle(Paint.Style.STROKE);
+        paint.setColor(0xffff9900);
+        canvas.drawLine(center.x, center.y, center.x, center.y - radius + 10, paint);
+        canvas.drawLine(center.x - 2, center.y - radius + 20, center.x, center.y - radius + 10, paint);
+        canvas.drawLine(center.x + 2, center.y - radius + 20, center.x, center.y - radius + 10, paint);
+	}
+	
+	private void setupPowerControl() {
+		mEngineBar.setMax(MAX_ENGINE_SPEED);
 		mEngineBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int progress,
 					boolean fromUser) {
-				// TODO Auto-generated method stub
-				
+				float rpm = Math.min(progress, seekBar.getMax()) / 6f;
+				mEngineSetSpeed.setText(getString(R.string.rotation_speed_format, rpm));
 			}
 
 			@Override
 			public void onStartTrackingTouch(SeekBar seekBar) {
-				// TODO Auto-generated method stub
-				
 			}
 
 			@Override
 			public void onStopTrackingTouch(SeekBar seekBar) {
 				seekBar.setProgress(0);
-			}
-		});
-		
-		mCover.setVisibility(View.VISIBLE);
-		this.mClient = new SppClient();
-		this.mClient.setOnConnectedListener(new SppClient.OnConnectedListener() {
-			@Override
-			public void onFailed(Exception e) {
-				appendLog(e);
-			}
-			
-			@Override
-			public void onConnected(Communicator comm) {
-				try {
-                    appendLog("Connected");
-                    mComm = comm;
-                    
-					appendLog("Communicator ready.");
-					runOnUiThread(new Runnable() {
-						@Override
-						public void run() {
-                            setBtConnectState(BtConnectState.Connected);
-						}
-					});
-				} catch (Exception e) {
-					appendLog(e);
-				}
+				mEngineSetSpeed.setText(R.string.none);
 			}
 		});
 	}

@@ -14,7 +14,7 @@ public class ObstacleInforProcessor implements Processor<ObstacleInforMessage> {
 	 * 回调接口
 	 */
 	public static interface Callback {
-		public void displayReport(ObstacleInforMessage msg);
+		public void displayObstacleInfor(ObstacleInforMessage msg);
 	}
 	
 	private Callback mCallback;
@@ -23,7 +23,7 @@ public class ObstacleInforProcessor implements Processor<ObstacleInforMessage> {
 	 * 设置回调接口对象
 	 * @param callback 回调接口对象
 	 */
-	public void setReportCallback(Callback callback) {
+	public void setCallback(Callback callback) {
 		mCallback = callback;
 	}
 
@@ -31,7 +31,7 @@ public class ObstacleInforProcessor implements Processor<ObstacleInforMessage> {
 	public void process(ObstacleInforMessage msg, Communicator communicator) {
 		if (mCallback != null) {
 			System.out.printf("Process msg: %s\n", msg.toString());
-			mCallback.displayReport(msg);
+			mCallback.displayObstacleInfor(msg);
 		}
 	}
 }

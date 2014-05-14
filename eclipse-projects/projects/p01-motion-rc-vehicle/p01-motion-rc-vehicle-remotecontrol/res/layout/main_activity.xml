@@ -78,7 +78,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="@dimen/horizontal_padding"
-            android:background="@color/obstacle_normal_color"
+            android:background="@color/obstacle_safe_color"
             android:paddingBottom="@dimen/horizontal_padding"
             android:paddingLeft="@dimen/horizontal_padding"
             android:paddingRight="@dimen/horizontal_padding"
@@ -214,26 +214,29 @@
         android:paddingTop="@dimen/horizontal_padding" >
 
         <Button
-            android:id="@+id/vehicle_break"
+            android:id="@+id/engine_break"
             style="?android:attr/buttonStyleSmall"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
             android:text="@string/vehicle_break" />
 
         <TextView
             android:id="@+id/set_speed"
-            android:layout_width="wrap_content"
+            android:layout_width="80dp"
             android:layout_height="wrap_content"
             android:layout_alignParentTop="true"
-            android:text="@string/rotation_speed_format"
+            android:layout_centerHorizontal="true"
+            android:gravity="right"
+            android:text="@string/none"
             android:textAppearance="?android:attr/textAppearanceSmall" />
 
         <android.widget.VerticalSeekBar
-            android:id="@+id/speed_bar"
+            android:id="@+id/engine_bar"
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
-            android:layout_above="@id/vehicle_break"
+            android:layout_above="@id/engine_break"
             android:layout_below="@id/set_speed"
             android:layout_centerHorizontal="true" />
     </RelativeLayout>
@@ -246,7 +249,7 @@
     android:layout_height="match_parent"
     android:background="@color/cover_color"
     android:clickable="true"
-    android:visibility="invisible" >
+    android:visibility="gone" >
 
     <TextView
         android:layout_width="wrap_content"

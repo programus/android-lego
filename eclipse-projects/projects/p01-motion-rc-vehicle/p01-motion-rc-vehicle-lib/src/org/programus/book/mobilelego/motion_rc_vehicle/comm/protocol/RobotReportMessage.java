@@ -4,7 +4,7 @@ public class RobotReportMessage implements NetMessage {
 	private static final long serialVersionUID = -8702695106516789834L;
 	
 	private double speed;
-	private float rotateSpeed;
+	private double rotationalSpeed;
 	private double distance;
 	public double getSpeed() {
 		return speed;
@@ -12,11 +12,11 @@ public class RobotReportMessage implements NetMessage {
 	public void setSpeed(double speed) {
 		this.speed = speed;
 	}
-	public float getRotateSpeed() {
-		return rotateSpeed;
+	public double getRotationalSpeed() {
+		return rotationalSpeed;
 	}
-	public void setRotateSpeed(float rotateSpeed) {
-		this.rotateSpeed = rotateSpeed;
+	public void setRotationalSpeed(double rotationalSpeed) {
+		this.rotationalSpeed = rotationalSpeed;
 	}
 	public double getDistance() {
 		return distance;
@@ -26,7 +26,7 @@ public class RobotReportMessage implements NetMessage {
 	}
 	@Override
 	public String toString() {
-		return "RobotReportMessage [speed=" + speed + ", rotateSpeed="
-				+ rotateSpeed + ", distance=" + distance + "]";
+		return "RobotReportMessage [speed=" + speed + ", rotationalSpeed="
+				+ rotationalSpeed + ", distance=" + distance + "]";
 	}
 }

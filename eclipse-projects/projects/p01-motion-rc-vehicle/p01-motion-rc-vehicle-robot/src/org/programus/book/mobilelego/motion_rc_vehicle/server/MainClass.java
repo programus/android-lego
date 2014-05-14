@@ -12,6 +12,7 @@ import lejos.hardware.lcd.GraphicsLCD;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.RobotMoveCommand;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.util.Communicator;
 import org.programus.book.mobilelego.motion_rc_vehicle.server.core.ObstacleMonitor;
+import org.programus.book.mobilelego.motion_rc_vehicle.server.core.RobotReporter;
 import org.programus.book.mobilelego.motion_rc_vehicle.server.core.VehicleRobot;
 import org.programus.book.mobilelego.motion_rc_vehicle.server.net.Server;
 import org.programus.book.mobilelego.motion_rc_vehicle.server.processor.RobotMoveProcessor;
@@ -48,6 +49,8 @@ public class MainClass {
 			communicator.addProcessor(RobotMoveCommand.class, new RobotMoveProcessor(robot));
 			ObstacleMonitor obsMonitor = new ObstacleMonitor(robot, communicator);
 			obsMonitor.startReporting();
+			RobotReporter reporter = new RobotReporter(robot, communicator);
+			reporter.startReporting();
 		} catch (IOException e) {
 			Sound.buzz();
 			e.printStackTrace();

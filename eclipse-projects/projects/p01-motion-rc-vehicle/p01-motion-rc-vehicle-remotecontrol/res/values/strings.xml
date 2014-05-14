@@ -16,12 +16,12 @@
 
     <string name="distance">Distance</string>
 
-    <string name="rotation_speed_format">%.3f rpm</string>
+    <string name="rotation_speed_format">%3.3f rpm</string>
 
     <string name="speed_format">%.3f m/s</string>
 
     <string name="distance_format">%.3f m</string>
-    <string name="none">-</string>
+    <string name="none">------</string>
 
     <string name="obstacle_distance">Obstacle Distance</string>
     <string name="msg_bluetooth_not_supported">Bluetooth is not supported on this device!</string>
