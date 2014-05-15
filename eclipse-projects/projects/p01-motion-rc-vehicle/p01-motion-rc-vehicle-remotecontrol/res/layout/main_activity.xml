@@ -95,7 +95,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:gravity="right"
-                android:text="@string/distance_format"
+                android:text="@string/none"
                 android:textAppearance="?android:attr/textAppearanceLarge" />
 
         </LinearLayout>
@@ -144,7 +144,6 @@
                 android:layout_height="wrap_content"
                 android:layout_alignRight="@id/rotation_speed_progress"
                 android:layout_below="@id/rotation_speed_progress"
-                android:text="@string/rotation_speed_format"
                 android:textAppearance="?android:attr/textAppearanceSmall" />
 
             <ProgressBar
@@ -162,7 +161,6 @@
                 android:layout_height="wrap_content"
                 android:layout_alignRight="@id/speed_progress"
                 android:layout_below="@id/speed_progress"
-                android:text="@string/speed_format"
                 android:textAppearance="?android:attr/textAppearanceSmall" />
 
             <TextView
@@ -173,7 +171,6 @@
                 android:layout_marginLeft="@dimen/horizontal_padding"
                 android:layout_toRightOf="@id/header_distance"
                 android:gravity="right"
-                android:text="@string/distance_format"
                 android:textAppearance="?android:attr/textAppearanceLarge" />
         </RelativeLayout>
 
@@ -248,8 +245,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/cover_color"
-    android:clickable="true"
-    android:visibility="gone" >
+    android:clickable="true" >
 
     <TextView
         android:layout_width="wrap_content"

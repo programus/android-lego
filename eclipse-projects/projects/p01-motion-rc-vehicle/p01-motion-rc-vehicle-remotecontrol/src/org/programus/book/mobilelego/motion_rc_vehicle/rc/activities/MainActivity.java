@@ -8,6 +8,7 @@ import java.util.TimerTask;
 
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ExitSignal;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ObstacleInforMessage;
+import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.RobotMoveCommand;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.RobotReportMessage;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.util.Communicator;
 import org.programus.book.mobilelego.motion_rc_vehicle.rc.R;
@@ -21,7 +22,6 @@ import android.bluetooth.BluetoothAdapter;
 import android.bluetooth.BluetoothDevice;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.res.Resources;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.PointF;
@@ -34,6 +34,7 @@ import android.text.Html;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
+import android.view.MotionEvent;
 import android.view.Surface;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -85,14 +86,23 @@ public class MainActivity extends Activity {
 
 	private ViewGroup mObstaclePart;
 	private TextView mObstacleText;
+	private ObstacleInforMessage mObstacleInfor;
 
 	private RadioGroup mGears;
 	private VerticalSeekBar mEngineBar;
 	private Button mBreak;
 	private TextView mEngineSetSpeed;
+	private float mEngineSpeed;
+	private RobotMoveCommand.Command mCommand;
+	
+	private RobotMoveCommand mPrevCmd;
 
 	private ViewGroup mCover;
 	private TextView mLog;
+	
+	private Timer mTimer;
+	private TimerTask mTask;
+	private static final int SEND_ITERVAL = 300;
 	
 	public MainActivity() {
 		initProcessors();
@@ -147,7 +157,7 @@ public class MainActivity extends Activity {
 		this.mBreak = (Button) this.findViewById(R.id.engine_break);
 		this.mEngineSetSpeed = (TextView) this.findViewById(R.id.set_speed);
 
-		this.mCover = (ViewGroup) this.findViewById(R.id.all);
+		this.mCover = (ViewGroup) this.findViewById(R.id.cover);
 		this.mLog = (TextView) this.findViewById(R.id.log);
 
 	}
@@ -161,6 +171,27 @@ public class MainActivity extends Activity {
 		this.initSensor();
 		this.setupComponents();
 		this.initNetClient();
+		this.initCommandSendTimer();
+	}
+	
+	private void initCommandSendTimer() {
+		this.mTimer = new Timer("send command", true);
+	}
+	
+	private void startCommandSendTimer() {
+		this.mTask = new TimerTask() {
+			@Override
+			public void run() {
+				sendMoveCommand();
+			}
+		};
+		this.mTimer.schedule(mTask, 0, SEND_ITERVAL);
+	}
+	
+	private void stopCommandSendTimer() {
+		this.mTask.cancel();
+		this.mTimer.purge();
+		this.mTask = null;
 	}
 	
 	/**
@@ -196,6 +227,7 @@ public class MainActivity extends Activity {
                     break;
                 }
                 mRotateAngle = Math.asin(g / SensorManager.GRAVITY_EARTH);
+                setMoveCommand();
             }
 
 			@Override
@@ -229,6 +261,7 @@ public class MainActivity extends Activity {
                             setBtConnectState(BtConnectState.Connected);
 						}
 					});
+					startCommandSendTimer();
 				} catch (Exception e) {
 					appendLog(e);
 				}
@@ -255,8 +288,9 @@ public class MainActivity extends Activity {
 	}
 	
 	private void updateObstacleInfor(ObstacleInforMessage msg) {
-		float distance = msg.getDistance();
-		this.mObstacleText.setText(this.getString(R.string.distance_format, distance));
+		this.mObstacleInfor = msg;
+		int distance = msg.getDistance();
+		this.mObstacleText.setText(this.getString(R.string.obstacle_distance_format, distance));
 		int colorId = R.color.obstacle_safe_color;
 		switch (msg.getType()) {
 		case Safe:
@@ -360,8 +394,10 @@ public class MainActivity extends Activity {
 			@Override
 			public void onProgressChanged(SeekBar seekBar, int progress,
 					boolean fromUser) {
-				float rpm = Math.min(progress, seekBar.getMax()) / 6f;
-				mEngineSetSpeed.setText(getString(R.string.rotation_speed_format, rpm));
+                mEngineSpeed = Math.min(progress, seekBar.getMax());
+                float rpm = mEngineSpeed / 6f;
+                mEngineSetSpeed.setText(getString(R.string.rotation_speed_format, rpm));
+                setMoveCommand();
 			}
 
 			@Override
@@ -372,8 +408,64 @@ public class MainActivity extends Activity {
 			public void onStopTrackingTouch(SeekBar seekBar) {
 				seekBar.setProgress(0);
 				mEngineSetSpeed.setText(R.string.none);
+				mEngineSpeed = 0;
+				mCommand = RobotMoveCommand.Command.Float;
 			}
 		});
+
+		mBreak.setOnTouchListener(new View.OnTouchListener() {
+			@Override
+			public boolean onTouch(View v, MotionEvent event) {
+				if (event.getAction() == MotionEvent.ACTION_DOWN) {
+					mEngineSpeed = 0;
+					mCommand = RobotMoveCommand.Command.Stop;
+				}
+				return false;
+			}
+		});
+	}
+	
+	private boolean isDuplicatedCommand(RobotMoveCommand cmd) {
+		boolean result = cmd == mPrevCmd;
+		if (!result) {
+			if (cmd != null && mPrevCmd != null) {
+                result = mPrevCmd.getCommand().equals(cmd.getCommand());
+                switch(cmd.getCommand()) {
+                case Forward:
+                case Backward:
+                	result = result && (int)mPrevCmd.getSpeed() == (int)cmd.getSpeed() && (int)(mPrevCmd.getRotation() * 50) == (int)(cmd.getRotation() * 50);
+                	break;
+				default:
+					break;
+                }
+			} else {
+				result = false;
+			}
+		}
+		return result;
+	}
+	
+	private void setMoveCommand() {
+		if (!mBreak.isPressed()) {
+			this.mCommand = mGears.getCheckedRadioButtonId() == R.id.gear_backward ? 
+					RobotMoveCommand.Command.Backward : RobotMoveCommand.Command.Forward;
+		}
+	}
+	
+	private void sendMoveCommand() {
+		if (this.mObstacleInfor != null && this.mObstacleInfor.getType().equals(ObstacleInforMessage.Type.Danger)) {
+			this.mCommand = RobotMoveCommand.Command.Stop;
+		}
+		if (this.mClient.isConnected() && mComm != null) {
+            RobotMoveCommand cmd = new RobotMoveCommand();
+            cmd.setCommand(this.mCommand);
+            cmd.setRotation(mRotateAngle);
+            cmd.setSpeed(mEngineSpeed);
+            if (!this.isDuplicatedCommand(cmd)) {
+                mComm.send(cmd);
+                mPrevCmd = cmd;
+            }
+		}
 	}
 	
     /**
@@ -428,6 +520,7 @@ public class MainActivity extends Activity {
 	private void disconnect() {
 		if (mClient.isConnected()) {
 			mClient.close();
+			this.stopCommandSendTimer();
 			appendLog("Disconnected.");
 		}
 	}
@@ -522,17 +615,17 @@ public class MainActivity extends Activity {
 				.setItems(deviceDescriptions, new DialogInterface.OnClickListener() {
 					@Override
 					public void onClick(DialogInterface dialog, int which) {
-						if (which <= 0) {
+						if (which < 0) {
 							setBtConnectState(BtConnectState.Disconnected);
 						} else {
-							connect(devices[which - 1]);
+							connect(devices[which]);
 						}
 					}
 				});
 			AlertDialog dialog = builder.create();
-			dialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+			dialog.setOnCancelListener(new DialogInterface.OnCancelListener() {
 				@Override
-				public void onDismiss(DialogInterface dialog) {
+				public void onCancel(DialogInterface dialog) {
 					setBtConnectState(BtConnectState.Disconnected);
 				}
 			});
@@ -577,7 +670,7 @@ public class MainActivity extends Activity {
 	protected void onResume() {
 		super.onResume();
 		// 注册传感器事件监听器
-		mSensorManager.registerListener(mSensorListener, mGravity, SensorManager.SENSOR_DELAY_GAME);
+		mSensorManager.registerListener(mSensorListener, mGravity, SensorManager.SENSOR_DELAY_NORMAL);
 	}
 
 	@Override
@@ -585,5 +678,6 @@ public class MainActivity extends Activity {
 		super.onPause();
 		// 解除传感器时间监听器
 		mSensorManager.unregisterListener(mSensorListener);
+		this.disconnect();
 	}
 }

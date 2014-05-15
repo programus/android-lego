@@ -8,7 +8,7 @@ import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.RobotReport
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.util.Communicator;
 
 public class RobotReporter {
-	private static final int ITERVAL = 100;
+	private static final int ITERVAL = 500;
 	private VehicleRobot robot;
 	private Communicator communicator;
 	
@@ -27,15 +27,14 @@ public class RobotReporter {
 	}
 	
 	private RobotReportMessage sendReport(RobotReportMessage prevMsg) {
-		RobotReportMessage msg = prevMsg;
+		RobotReportMessage msg = new RobotReportMessage();
 		double distance = robot.getDistance();
 		double speed = robot.getSpeed();
 		double rotationalSpeed = robot.getRotationalSpeed();
-		if (msg == null || distance != prevMsg.getDistance() || speed != prevMsg.getSpeed() || rotationalSpeed != prevMsg.getRotationalSpeed()) {
-			msg = new RobotReportMessage();
-			msg.setDistance(distance);
-			msg.setSpeed(speed);
-			msg.setRotationalSpeed(rotationalSpeed);
+        msg.setDistance(distance);
+        msg.setSpeed(speed);
+        msg.setRotationalSpeed(rotationalSpeed);
+		if (prevMsg == null || !msg.isSameAs(prevMsg)) {
 			communicator.send(msg);
 		}
 		return msg;

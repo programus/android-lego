@@ -75,6 +75,7 @@ public class VehicleRobot {
 		float dv = (float) Math.toDegrees(angle * AXLE_TRACK / WHEEL_DIAMETER);
 		float baseSpeed = Math.abs(speed);
 		float[] speeds = { baseSpeed + dv, baseSpeed - dv};
+		System.out.printf("speed before: %.3f, %.3f/%.3f\n", speed, speeds[0], speeds[1]);
 		for (int i = 0; i < speeds.length; i++) {
 			float x = speeds[i];
 			float adv = Math.abs(dv);
@@ -83,14 +84,17 @@ public class VehicleRobot {
 				speeds[~i] = x > 0 ? speedLimit - adv : -speedLimit + adv;
 			}
 		}
+		System.out.printf("speed after: %.3f, %.3f/%.3f\n", speed, speeds[0], speeds[1]);
 
 		for (int i = 0; i < wheelMotors.length; i++) {
 			BaseRegulatedMotor motor = wheelMotors[i];
 			float sp = speeds[i];
 			motor.setSpeed(sp);
-			if (sp >= 0) {
+			int currSpeed = motor.getRotationSpeed();
+			System.out.printf("motor[%d] - curr: %d, set: %.1f\n", i, currSpeed, sp);
+			if (sp > 0 && currSpeed <= 0) {
 				motor.forward();
-			} else {
+			} else if (sp < 0 && currSpeed >= 0){
 				motor.backward();
 			}
 		}

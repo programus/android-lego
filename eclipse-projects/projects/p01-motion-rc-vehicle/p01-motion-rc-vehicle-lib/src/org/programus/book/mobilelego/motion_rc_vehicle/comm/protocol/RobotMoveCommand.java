@@ -15,7 +15,7 @@ public class RobotMoveCommand implements NetMessage {
 		/** 前进 */
 		Forward,
 		/** 后退 */
-		Backword,
+		Backward,
 		/** 切断动力、惯性滑行 */
 		Float,
 		/** 停止，禁止转向 */

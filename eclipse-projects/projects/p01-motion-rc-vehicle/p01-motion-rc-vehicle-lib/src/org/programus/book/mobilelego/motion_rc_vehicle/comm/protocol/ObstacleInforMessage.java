@@ -4,18 +4,18 @@ public class ObstacleInforMessage implements NetMessage {
 	private static final long serialVersionUID = 5173579547303936055L;
 	
 	public static enum Type {
-		Safe(800),
-		Warning(400),
-		Danger(100);
+		Safe((short)800),
+		Warning((short)400),
+		Danger((short)100);
 		
-		private final int value;
-		Type(int mm) {
+		private final short value;
+		Type(short mm) {
 			this.value = mm;
 		}
 	}
 
 	private Type type;
-	private float distance;
+	private short distance;
 	public Type getType() {
 		if (this.distance < Type.Danger.value) {
 			type = Type.Danger;
@@ -26,10 +26,10 @@ public class ObstacleInforMessage implements NetMessage {
 		}
 		return type;
 	}
-	public float getDistance() {
+	public short getDistance() {
 		return distance;
 	}
-	public void setDistance(float distance) {
+	public void setDistance(short distance) {
 		this.distance = distance;
 	}
 	@Override

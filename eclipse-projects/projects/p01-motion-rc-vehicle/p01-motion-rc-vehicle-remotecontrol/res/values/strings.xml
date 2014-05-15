@@ -21,6 +21,7 @@
     <string name="speed_format">%.3f m/s</string>
 
     <string name="distance_format">%.3f m</string>
+    <string name="obstacle_distance_format">%d mm</string>
     <string name="none">------</string>
 
     <string name="obstacle_distance">Obstacle Distance</string>

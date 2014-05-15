@@ -8,7 +8,7 @@ import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ObstacleInf
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.util.Communicator;
 
 public class ObstacleMonitor {
-	private static final int ITERVAL = 1000 / 40;
+	private static final int ITERVAL = 200;
 	private VehicleRobot robot;
 	private Communicator communicator;
 	
@@ -28,7 +28,7 @@ public class ObstacleMonitor {
 	
 	private ObstacleInforMessage sendReport(ObstacleInforMessage prevMsg) {
 		ObstacleInforMessage msg = prevMsg;
-		float distance = robot.getObstacleDistance();
+		short distance = (short)(robot.getObstacleDistance() * 1000);
 		if (msg == null || distance != prevMsg.getDistance()) {
 			msg = new ObstacleInforMessage();
 			msg.setDistance(distance);

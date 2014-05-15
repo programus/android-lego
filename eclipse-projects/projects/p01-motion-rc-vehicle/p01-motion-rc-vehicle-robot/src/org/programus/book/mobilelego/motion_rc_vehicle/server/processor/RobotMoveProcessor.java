@@ -21,7 +21,7 @@ public class RobotMoveProcessor implements Processor<RobotMoveCommand> {
 		case Forward:
 			robot.forward(speed, angle);
 			break;
-		case Backword:
+		case Backward:
 			robot.backword(speed, angle);
 			break;
 		case Float:
