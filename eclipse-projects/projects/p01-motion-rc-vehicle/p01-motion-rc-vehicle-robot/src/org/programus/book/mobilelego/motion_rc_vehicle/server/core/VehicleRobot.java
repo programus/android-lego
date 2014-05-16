@@ -7,7 +7,6 @@ import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.hardware.port.MotorPort;
 import lejos.hardware.port.SensorPort;
 import lejos.hardware.sensor.EV3UltrasonicSensor;
-import lejos.hardware.sensor.SensorModes;
 import lejos.robotics.RegulatedMotor;
 import lejos.robotics.SampleProvider;
 import lejos.robotics.filter.MeanFilter;
@@ -21,7 +20,7 @@ public class VehicleRobot {
 			new EV3LargeRegulatedMotor(MotorPort.C)
 	}; 
 	
-	private SensorModes distanceSensor; 
+	private EV3UltrasonicSensor distanceSensor; 
 	private SampleProvider distanceProvider; 
 	
 	private float speedLimit;
@@ -144,5 +143,12 @@ public class VehicleRobot {
 		float[] samples = new float[this.distanceProvider.sampleSize()];
 		this.distanceProvider.fetchSample(samples, 0);
 		return samples[0];
+	}
+	
+	public void release() {
+		for (BaseRegulatedMotor motor : this.wheelMotors) {
+			motor.close();
+		}
+		this.distanceSensor.close();
 	}
 }

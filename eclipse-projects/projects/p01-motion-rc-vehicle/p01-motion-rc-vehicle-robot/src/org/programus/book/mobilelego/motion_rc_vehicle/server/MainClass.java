@@ -9,6 +9,7 @@ import lejos.hardware.ev3.LocalEV3;
 import lejos.hardware.lcd.Font;
 import lejos.hardware.lcd.GraphicsLCD;
 
+import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ExitSignal;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.RobotMoveCommand;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.util.Communicator;
 import org.programus.book.mobilelego.motion_rc_vehicle.server.core.ObstacleMonitor;
@@ -40,13 +41,19 @@ public class MainClass {
 
 	public static void main(String[] args) {
 		promptWait();
-		VehicleRobot robot = VehicleRobot.getInstance();
+		final VehicleRobot robot = VehicleRobot.getInstance();
 		Server server = Server.getInstance();
 		server.start();
 		promptConnected();
 		try {
 			Communicator communicator = server.getCommunicator();
 			communicator.addProcessor(RobotMoveCommand.class, new RobotMoveProcessor(robot));
+			communicator.addProcessor(ExitSignal.class, new Communicator.Processor<ExitSignal>() {
+				@Override
+				public void process(ExitSignal msg, Communicator communicator) {
+					robot.release();
+				}
+			});
 			ObstacleMonitor obsMonitor = new ObstacleMonitor(robot, communicator);
 			obsMonitor.startReporting();
 			RobotReporter reporter = new RobotReporter(robot, communicator);
