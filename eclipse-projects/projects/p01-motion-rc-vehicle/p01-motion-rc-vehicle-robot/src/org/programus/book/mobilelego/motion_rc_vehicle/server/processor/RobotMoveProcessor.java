@@ -15,8 +15,8 @@ public class RobotMoveProcessor implements Processor<RobotMoveCommand> {
 	@Override
 	public void process(RobotMoveCommand msg, Communicator communicator) {
 		System.out.printf("Processing %s\n", msg.toString());
-		float speed = msg.getSpeed();
-		double angle = msg.getRotation();
+		short speed = msg.getSpeed();
+		short angle = msg.getRotation();
 		switch (msg.getCommand()) {
 		case Forward:
 			robot.forward(speed, angle);

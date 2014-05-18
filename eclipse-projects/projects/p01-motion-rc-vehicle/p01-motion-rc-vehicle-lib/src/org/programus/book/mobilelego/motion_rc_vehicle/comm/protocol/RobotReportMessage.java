@@ -3,36 +3,34 @@ package org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol;
 public class RobotReportMessage implements NetMessage {
 	private static final long serialVersionUID = -8702695106516789834L;
 	
-	public static final short RATE = 1000;
-	
 	private short speed;
-	private short rotationalSpeed;
+	private short rotationSpeed;
 	private int distance;
-	public double getSpeed() {
-		return (double) speed / RATE;
+	public short getSpeed() {
+		return speed;
 	}
-	public void setSpeed(double speed) {
-		this.speed = (short) (speed * RATE);
+	public void setSpeed(short speed) {
+		this.speed = speed;
 	}
-	public double getRotationalSpeed() {
-		return (double) rotationalSpeed / RATE;
+	public short getRotationSpeed() {
+		return rotationSpeed;
 	}
-	public void setRotationalSpeed(double rotationalSpeed) {
-		this.rotationalSpeed = (short) (rotationalSpeed * RATE);
+	public void setRotationSpeed(short rotationSpeed) {
+		this.rotationSpeed = rotationSpeed;
 	}
-	public double getDistance() {
-		return (double) distance / RATE;
+	public int getDistance() {
+		return distance;
 	}
-	public void setDistance(double distance) {
-		this.distance = (int) (distance * RATE);
+	public void setDistance(int distance) {
+		this.distance = distance;
 	}
 	
 	public boolean isSameAs(RobotReportMessage msg) {
-		return this.speed == msg.speed && this.rotationalSpeed == msg.rotationalSpeed && this.distance == msg.distance;
+		return this.speed == msg.speed && this.rotationSpeed == msg.rotationSpeed && this.distance == msg.distance;
 	}
 	@Override
 	public String toString() {
-		return "RobotReportMessage [speed=" + speed + ", rotationalSpeed="
-				+ rotationalSpeed + ", distance=" + distance + "]";
+		return "RobotReportMessage [speed=" + speed + ", rotationSpeed="
+				+ rotationSpeed + ", distance=" + distance + "]";
 	}
 }

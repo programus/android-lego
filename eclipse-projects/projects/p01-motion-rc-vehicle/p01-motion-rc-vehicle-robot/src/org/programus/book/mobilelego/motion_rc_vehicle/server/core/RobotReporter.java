@@ -28,12 +28,12 @@ public class RobotReporter {
 	
 	private RobotReportMessage sendReport(RobotReportMessage prevMsg) {
 		RobotReportMessage msg = new RobotReportMessage();
-		double distance = robot.getDistance();
-		double speed = robot.getSpeed();
-		double rotationalSpeed = robot.getRotationalSpeed();
+		int distance = robot.getDistance();
+		short speed = robot.getSpeed();
+		short rotationalSpeed = robot.getRotationSpeed();
         msg.setDistance(distance);
         msg.setSpeed(speed);
-        msg.setRotationalSpeed(rotationalSpeed);
+        msg.setRotationSpeed(rotationalSpeed);
 		if (prevMsg == null || !msg.isSameAs(prevMsg)) {
 			communicator.send(msg);
 		}
@@ -42,9 +42,9 @@ public class RobotReporter {
 	
 	private void sendMaxReport() {
 		RobotReportMessage msg = new RobotReportMessage();
-		msg.setDistance(0);
+		msg.setDistance(-1);
 		msg.setSpeed(robot.getMaxSpeed());
-		msg.setRotationalSpeed(robot.getMaxRotationSpeed());
+		msg.setRotationSpeed(robot.getMaxRotationSpeed());
 		communicator.send(msg);
 	}
 	

@@ -28,7 +28,7 @@ public class ObstacleMonitor {
 	
 	private ObstacleInforMessage sendReport(ObstacleInforMessage prevMsg) {
 		ObstacleInforMessage msg = prevMsg;
-		short distance = (short)(robot.getObstacleDistance() * 1000);
+		float distance = robot.getObstacleDistance();
 		if (msg == null || distance != prevMsg.getDistance()) {
 			msg = new ObstacleInforMessage();
 			msg.setDistance(distance);
@@ -44,7 +44,7 @@ public class ObstacleMonitor {
 				@Override
 				public void run() {
 					prevMsg = sendReport(prevMsg);
-					if (ObstacleInforMessage.Type.Danger.equals(prevMsg.getType()) && robot.getRotationalSpeed() > 0) {
+					if (ObstacleInforMessage.Type.Danger.equals(prevMsg.getType()) && robot.getRotationSpeed() > 0) {
 						robot.stop();
 					}
 				}

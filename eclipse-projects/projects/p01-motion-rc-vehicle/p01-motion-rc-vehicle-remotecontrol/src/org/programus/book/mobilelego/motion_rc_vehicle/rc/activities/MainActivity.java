@@ -12,6 +12,7 @@ import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.RobotMoveCo
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.RobotReportMessage;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.util.Communicator;
 import org.programus.book.mobilelego.motion_rc_vehicle.rc.R;
+import org.programus.book.mobilelego.motion_rc_vehicle.rc.net.RobotMoveCommandSender;
 import org.programus.book.mobilelego.motion_rc_vehicle.rc.net.SppClient;
 import org.programus.book.mobilelego.motion_rc_vehicle.rc.processors.ObstacleInforProcessor;
 import org.programus.book.mobilelego.motion_rc_vehicle.rc.processors.RobotReportProcessor;
@@ -42,6 +43,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.ProgressBar;
+import android.widget.RadioButton;
 import android.widget.RadioGroup;
 import android.widget.SeekBar;
 import android.widget.SeekBar.OnSeekBarChangeListener;
@@ -89,20 +91,17 @@ public class MainActivity extends Activity {
 	private ObstacleInforMessage mObstacleInfor;
 
 	private RadioGroup mGears;
+	private RadioButton mBackward;
 	private VerticalSeekBar mEngineBar;
 	private Button mBreak;
 	private TextView mEngineSetSpeed;
-	private float mEngineSpeed;
+	private boolean mMoveBackward;
+	private int mEngineSpeed;
 	private RobotMoveCommand.Command mCommand;
+	private RobotMoveCommandSender mCmdSender;
 	
-	private RobotMoveCommand mPrevCmd;
-
 	private ViewGroup mCover;
 	private TextView mLog;
-	
-	private Timer mTimer;
-	private TimerTask mTask;
-	private static final int SEND_ITERVAL = 300;
 	
 	public MainActivity() {
 		initProcessors();
@@ -153,6 +152,7 @@ public class MainActivity extends Activity {
 		this.mObstacleText = (TextView) this.findViewById(R.id.obstacle_distance);
 		
 		this.mGears = (RadioGroup) this.findViewById(R.id.gears);
+		this.mBackward = (RadioButton) this.findViewById(R.id.gear_backward);
 		this.mEngineBar = (VerticalSeekBar) this.findViewById(R.id.engine_bar);
 		this.mBreak = (Button) this.findViewById(R.id.engine_break);
 		this.mEngineSetSpeed = (TextView) this.findViewById(R.id.set_speed);
@@ -171,27 +171,6 @@ public class MainActivity extends Activity {
 		this.initSensor();
 		this.setupComponents();
 		this.initNetClient();
-		this.initCommandSendTimer();
-	}
-	
-	private void initCommandSendTimer() {
-		this.mTimer = new Timer("send command", true);
-	}
-	
-	private void startCommandSendTimer() {
-		this.mTask = new TimerTask() {
-			@Override
-			public void run() {
-				sendMoveCommand();
-			}
-		};
-		this.mTimer.schedule(mTask, 0, SEND_ITERVAL);
-	}
-	
-	private void stopCommandSendTimer() {
-		this.mTask.cancel();
-		this.mTimer.purge();
-		this.mTask = null;
 	}
 	
 	/**
@@ -228,6 +207,7 @@ public class MainActivity extends Activity {
                 }
                 mRotateAngle = Math.asin(g / SensorManager.GRAVITY_EARTH);
                 setMoveCommand();
+                sendCommand();
             }
 
 			@Override
@@ -239,6 +219,7 @@ public class MainActivity extends Activity {
 	
 	private void initNetClient() {
 		this.mClient = new SppClient();
+		this.mCmdSender = new RobotMoveCommandSender();
 		this.mClient.setOnConnectedListener(new SppClient.OnConnectedListener() {
 			@Override
 			public void onFailed(Exception e) {
@@ -254,6 +235,8 @@ public class MainActivity extends Activity {
                     mComm.addProcessor(RobotReportMessage.class, mReportProcessor);
                     mComm.addProcessor(ObstacleInforMessage.class, mObstacleProcessor);
                     
+                    mCmdSender.init(mComm);
+                    
 					appendLog("Communicator ready.");
 					runOnUiThread(new Runnable() {
 						@Override
@@ -261,7 +244,6 @@ public class MainActivity extends Activity {
                             setBtConnectState(BtConnectState.Connected);
 						}
 					});
-					startCommandSendTimer();
 				} catch (Exception e) {
 					appendLog(e);
 				}
@@ -270,26 +252,28 @@ public class MainActivity extends Activity {
 	}
 	
 	private void updateRobotReport(RobotReportMessage msg) {
-		final int RSPEED_RATE = 1000 * 60;
-		final int SPEED_RATE = 1000;
+		final int RSPEED_RATE = 1000 / 6;
+		final int SPEED_RATE = 1;
+		final double RSPEED_CVT = 1. / 6;
+		final double SPEED_CVT = 0.001;
 		double distance = msg.getDistance();
-		if (distance == 0) {
-			this.mRotationSpeedBar.setMax((int)(msg.getRotationalSpeed() * RSPEED_RATE));
-			this.mSpeedBar.setMax((int)(msg.getSpeed() * SPEED_RATE));
+		if (distance < 0) {
+			this.mRotationSpeedBar.setMax(msg.getRotationSpeed() * RSPEED_RATE);
+			this.mSpeedBar.setMax(msg.getSpeed() * SPEED_RATE);
 		} else {
-			double rspeed = msg.getRotationalSpeed();
-			double speed = msg.getSpeed();
-			this.mRotationSpeedBar.setProgress((int)(rspeed * RSPEED_RATE));
-			this.mRotationSpeedText.setText(this.getString(R.string.rotation_speed_format, rspeed));
-			this.mSpeedBar.setProgress((int)(speed * SPEED_RATE));
-			this.mSpeedText.setText(this.getString(R.string.speed_format, speed));
-			this.mDistanceText.setText(this.getString(R.string.distance_format, distance));
+			short rspeed = msg.getRotationSpeed();
+			short speed = msg.getSpeed();
+			this.mRotationSpeedBar.setProgress(rspeed * RSPEED_RATE);
+			this.mRotationSpeedText.setText(this.getString(R.string.rotation_speed_format, rspeed * RSPEED_CVT));
+			this.mSpeedBar.setProgress((speed * SPEED_RATE));
+			this.mSpeedText.setText(this.getString(R.string.speed_format, speed * SPEED_CVT));
+			this.mDistanceText.setText(this.getString(R.string.distance_format, distance * SPEED_CVT));
 		}
 	}
 	
 	private void updateObstacleInfor(ObstacleInforMessage msg) {
 		this.mObstacleInfor = msg;
-		int distance = msg.getDistance();
+		float distance = msg.getFloatDistanceInMm();
 		this.mObstacleText.setText(this.getString(R.string.obstacle_distance_format, distance));
 		int colorId = R.color.obstacle_safe_color;
 		switch (msg.getType()) {
@@ -301,6 +285,9 @@ public class MainActivity extends Activity {
 			break;
 		case Danger:
 			colorId = R.color.obstacle_danger_color;
+			break;
+		case Unknown:
+			colorId = R.color.obstacle_unknown_color;
 			break;
 		}
 		this.mObstaclePart.setBackgroundResource(colorId);
@@ -398,6 +385,7 @@ public class MainActivity extends Activity {
                 float rpm = mEngineSpeed / 6f;
                 mEngineSetSpeed.setText(getString(R.string.rotation_speed_format, rpm));
                 setMoveCommand();
+                sendCommand();
 			}
 
 			@Override
@@ -410,6 +398,7 @@ public class MainActivity extends Activity {
 				mEngineSetSpeed.setText(R.string.none);
 				mEngineSpeed = 0;
 				mCommand = RobotMoveCommand.Command.Float;
+				sendCommand();
 			}
 		});
 
@@ -419,52 +408,39 @@ public class MainActivity extends Activity {
 				if (event.getAction() == MotionEvent.ACTION_DOWN) {
 					mEngineSpeed = 0;
 					mCommand = RobotMoveCommand.Command.Stop;
+					sendCommand();
 				}
 				return false;
 			}
 		});
-	}
-	
-	private boolean isDuplicatedCommand(RobotMoveCommand cmd) {
-		boolean result = cmd == mPrevCmd;
-		if (!result) {
-			if (cmd != null && mPrevCmd != null) {
-                result = mPrevCmd.getCommand().equals(cmd.getCommand());
-                switch(cmd.getCommand()) {
-                case Forward:
-                case Backward:
-                	result = result && (int)mPrevCmd.getSpeed() == (int)cmd.getSpeed() && (int)(mPrevCmd.getRotation() * 50) == (int)(cmd.getRotation() * 50);
-                	break;
-				default:
-					break;
-                }
-			} else {
-				result = false;
+		
+		mGears.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				mMoveBackward = mBackward.isChecked();
+				setMoveCommand();
+				sendCommand();
 			}
-		}
-		return result;
+		});
 	}
 	
 	private void setMoveCommand() {
 		if (!mBreak.isPressed()) {
-			this.mCommand = mGears.getCheckedRadioButtonId() == R.id.gear_backward ? 
+			this.mCommand = mMoveBackward ? 
 					RobotMoveCommand.Command.Backward : RobotMoveCommand.Command.Forward;
 		}
 	}
 	
-	private void sendMoveCommand() {
+	private void sendCommand() {
 		if (this.mObstacleInfor != null && this.mObstacleInfor.getType().equals(ObstacleInforMessage.Type.Danger)) {
 			this.mCommand = RobotMoveCommand.Command.Stop;
 		}
 		if (this.mClient.isConnected() && mComm != null) {
             RobotMoveCommand cmd = new RobotMoveCommand();
             cmd.setCommand(this.mCommand);
-            cmd.setRotation(mRotateAngle);
-            cmd.setSpeed(mEngineSpeed);
-            if (!this.isDuplicatedCommand(cmd)) {
-                mComm.send(cmd);
-                mPrevCmd = cmd;
-            }
+            cmd.setRotation((short)Math.toDegrees(mRotateAngle));
+            cmd.setSpeed((short)mEngineSpeed);
+            mCmdSender.requestSend(cmd);
 		}
 	}
 	
@@ -519,8 +495,8 @@ public class MainActivity extends Activity {
 	
 	private void disconnect() {
 		if (mClient.isConnected()) {
+			mCmdSender.init(null);
 			mClient.close();
-			this.stopCommandSendTimer();
 			appendLog("Disconnected.");
 		}
 	}
@@ -678,6 +654,7 @@ public class MainActivity extends Activity {
 		super.onPause();
 		// 解除传感器时间监听器
 		mSensorManager.unregisterListener(mSensorListener);
+		this.remoteFinish();
 		this.disconnect();
 	}
 }

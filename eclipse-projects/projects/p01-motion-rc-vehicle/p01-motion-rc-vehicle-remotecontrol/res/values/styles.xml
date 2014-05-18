@@ -22,5 +22,6 @@
     <color name="obstacle_safe_color">#ff00cf00</color>
     <color name="obstacle_warning_color">#ffeecc00</color>
     <color name="obstacle_danger_color">#ffaa2222</color>
+    <color name="obstacle_unknown_color">#ffaaaaaa</color>
 
 </resources>

@@ -25,9 +25,9 @@ public class RobotMoveCommand implements NetMessage {
 	
 	private Command command;
 	/** 机器人行进速度 */
-	private float speed;
+	private short speed;
 	/** 机器人转向角度 */
-	private double rotation;
+	private short rotation;
 
 	public Command getCommand() {
 		return command;
@@ -35,16 +35,16 @@ public class RobotMoveCommand implements NetMessage {
 	public void setCommand(Command command) {
 		this.command = command;
 	}
-	public float getSpeed() {
+	public short getSpeed() {
 		return speed;
 	}
-	public void setSpeed(float speed) {
+	public void setSpeed(short speed) {
 		this.speed = speed;
 	}
-	public double getRotation() {
+	public short getRotation() {
 		return rotation;
 	}
-	public void setRotation(double rotation) {
+	public void setRotation(short rotation) {
 		this.rotation = rotation;
 	}
 	@Override
