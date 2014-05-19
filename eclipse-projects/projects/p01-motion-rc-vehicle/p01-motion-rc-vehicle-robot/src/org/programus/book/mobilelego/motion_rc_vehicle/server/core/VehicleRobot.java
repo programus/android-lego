@@ -12,7 +12,7 @@ import lejos.robotics.SampleProvider;
 
 public class VehicleRobot {
 	private final static short WHEEL_DIAMETER = 36;
-	private final static short AXLE_TRACK = 110;
+	private final static short ANGULAR_RATE = 10;
 	
 	private final static int PI = 3;
 
@@ -72,14 +72,16 @@ public class VehicleRobot {
 	}
 
 	public void forward(int speed, int angle) {
-		long t = System.currentTimeMillis();
 		if (signum(speed) != signum(this.speed)) {
 			updateDistance();
 		}
 		
 		speed = adjustSpeed(speed);
 		
-		int dv = angle * AXLE_TRACK / WHEEL_DIAMETER * signum(speed);
+		int dv = angle * ANGULAR_RATE;
+		if (speed < 0) {
+			dv = -dv;
+		}
 		int baseSpeed = speed;
 		int[] speeds = { baseSpeed + dv, baseSpeed - dv};
 		for (int i = 0; i < speeds.length; i++) {
@@ -102,7 +104,6 @@ public class VehicleRobot {
 				motor.backward();
 			}
 		}
-		System.out.println(System.currentTimeMillis() - t);
 	}
 	
 	public void backword(int speed, int angle) {

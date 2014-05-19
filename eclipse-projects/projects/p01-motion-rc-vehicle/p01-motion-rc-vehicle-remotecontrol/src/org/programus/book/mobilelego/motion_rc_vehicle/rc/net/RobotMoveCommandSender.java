@@ -8,7 +8,7 @@ import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.RobotMoveCo
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.util.Communicator;
 
 public class RobotMoveCommandSender {
-	private static final int SEND_ITERVAL = 100;
+	private static final int SEND_ITERVAL = 200;
 	
 	private Communicator mComm;
 	

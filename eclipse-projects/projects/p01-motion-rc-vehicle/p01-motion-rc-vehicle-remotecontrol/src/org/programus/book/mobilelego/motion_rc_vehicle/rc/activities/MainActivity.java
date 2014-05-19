@@ -432,7 +432,7 @@ public class MainActivity extends Activity {
 	}
 	
 	private void sendCommand() {
-		if (this.mObstacleInfor != null && this.mObstacleInfor.getType().equals(ObstacleInforMessage.Type.Danger)) {
+		if (RobotMoveCommand.Command.Forward.equals(mCommand) && this.mObstacleInfor != null && this.mObstacleInfor.getType().equals(ObstacleInforMessage.Type.Danger)) {
 			this.mCommand = RobotMoveCommand.Command.Stop;
 		}
 		if (this.mClient.isConnected() && mComm != null) {
@@ -502,7 +502,9 @@ public class MainActivity extends Activity {
 	}
 	
 	private void remoteFinish() {
-		mComm.send(ExitSignal.getInstance());
+		if (mClient != null && mClient.isConnected() && mComm != null) {
+            mComm.send(ExitSignal.getInstance());
+		}
 	}
 
 	@Override
