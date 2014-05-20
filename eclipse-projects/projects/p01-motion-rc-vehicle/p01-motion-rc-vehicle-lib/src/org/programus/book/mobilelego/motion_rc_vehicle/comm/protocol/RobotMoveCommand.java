@@ -24,9 +24,9 @@ public class RobotMoveCommand implements NetMessage {
 	private static final long serialVersionUID = -7523347542695340161L;
 	
 	private Command command;
-	/** 机器人行进速度 */
+	/** 机器人行进时的引擎转速，单位:度/s */
 	private short speed;
-	/** 机器人转向角度 */
+	/** 机器人转向角度，单位：度 */
 	private short rotation;
 
 	public Command getCommand() {

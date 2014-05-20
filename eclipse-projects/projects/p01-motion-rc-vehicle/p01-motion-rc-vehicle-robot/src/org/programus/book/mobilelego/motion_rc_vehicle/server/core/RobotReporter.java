@@ -30,10 +30,10 @@ public class RobotReporter {
 		RobotReportMessage msg = new RobotReportMessage();
 		int distance = robot.getDistance();
 		short speed = robot.getSpeed();
-		short rotationalSpeed = robot.getRotationSpeed();
+		short rotationSpeed = robot.getRotationSpeed();
         msg.setDistance(distance);
         msg.setSpeed(speed);
-        msg.setRotationSpeed(rotationalSpeed);
+        msg.setRotationSpeed(rotationSpeed);
 		if (prevMsg == null || !msg.isSameAs(prevMsg)) {
 			communicator.send(msg);
 		}

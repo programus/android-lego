@@ -1,10 +1,19 @@
 package org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol;
 
+/**
+ * 机器人数据报告消息
+ * @author programus
+ */
 public class RobotReportMessage implements NetMessage {
 	private static final long serialVersionUID = -8702695106516789834L;
 	
+	/** 机器人行进速度，单位：mm/s */
 	private short speed;
+	/** 机器人引擎转速，单位：度/s */
 	private short rotationSpeed;
+	/** 机器人行进总里程，单位：mm 
+	 * (里程从每次程序运行时开始重新从零计算) 
+	 */
 	private int distance;
 	public short getSpeed() {
 		return speed;

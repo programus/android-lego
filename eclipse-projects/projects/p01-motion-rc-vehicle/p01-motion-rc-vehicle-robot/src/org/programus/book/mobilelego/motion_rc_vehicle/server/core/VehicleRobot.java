@@ -54,7 +54,7 @@ public class VehicleRobot {
 		return tachoCount * WHEEL_DIAMETER * PI / 720;
 	}
 	
-	private void updateDistance() {
+	private synchronized void updateDistance() {
 		int tachoCount = getTotalTachoCount();
 		this.distance += this.getDistanceFromTotalTachoCount(Math.abs(tachoCount - prevTachoCount));
 		prevTachoCount = tachoCount;
