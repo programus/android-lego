@@ -23,5 +23,7 @@
     <color name="obstacle_warning_color">#ffeecc00</color>
     <color name="obstacle_danger_color">#ffaa2222</color>
     <color name="obstacle_unknown_color">#ffaaaaaa</color>
+    <color name="negative_progress_color">#aa991111</color>
+    <color name="positive_progress_color">#00000000</color>
 
 </resources>

@@ -263,9 +263,11 @@ public class MainActivity extends Activity {
 		} else {
 			short rspeed = msg.getRotationSpeed();
 			short speed = msg.getSpeed();
-			this.mRotationSpeedBar.setProgress(rspeed * RSPEED_RATE);
+			this.mRotationSpeedBar.setProgress(Math.abs(rspeed * RSPEED_RATE));
+			this.mRotationSpeedBar.setBackgroundResource(rspeed >= 0 ? R.color.positive_progress_color : R.color.negative_progress_color);
 			this.mRotationSpeedText.setText(this.getString(R.string.rotation_speed_format, rspeed * RSPEED_CVT));
-			this.mSpeedBar.setProgress((speed * SPEED_RATE));
+			this.mSpeedBar.setProgress(Math.abs(speed * SPEED_RATE));
+			this.mSpeedBar.setBackgroundResource(speed >= 0 ? R.color.positive_progress_color : R.color.negative_progress_color);
 			this.mSpeedText.setText(this.getString(R.string.speed_format, speed * SPEED_CVT));
 			this.mDistanceText.setText(this.getString(R.string.distance_format, distance * SPEED_CVT));
 		}
