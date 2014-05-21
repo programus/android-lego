@@ -63,6 +63,10 @@ public class ObstacleInforMessage implements NetMessage {
 		return result;
 	}
 
+	/**
+	 * 设置障碍物距离值。单位：m
+	 * @param distance 障碍物距离值
+	 */
 	public void setDistance(float distance) {
 		if (Float.POSITIVE_INFINITY == distance) {
 			// 正无穷大，转为-1
@@ -78,6 +82,10 @@ public class ObstacleInforMessage implements NetMessage {
 		}
 	}
 
+	/**
+	 * 设置障碍物距离值。单位：mm
+	 * @param distance 障碍物距离值
+	 */
 	public void setDistance(int distance) {
 		this.distance = distance;
 	}

@@ -49,6 +49,7 @@ public class RobotReporter {
 	}
 	
 	public void startReporting() {
+		// 首先向手机端发送速度和转速上限值
 		sendMaxReport();
 		if (task == null) {
 			task = new TimerTask() {

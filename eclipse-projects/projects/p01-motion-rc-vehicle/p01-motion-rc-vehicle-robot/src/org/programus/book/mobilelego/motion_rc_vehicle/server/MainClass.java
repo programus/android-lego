@@ -40,22 +40,33 @@ public class MainClass {
 	}
 
 	public static void main(String[] args) {
-		promptWait();
+		// 取得机器人对象
 		final VehicleRobot robot = VehicleRobot.getInstance();
+		// 取得服务器对象
 		Server server = Server.getInstance();
+		// 提示服务器等待连接
+		promptWait();
+		// 启动服务器，等待连接
 		server.start();
+		// 通知已连接
 		promptConnected();
 		try {
+			// 取得通讯员对象
 			Communicator communicator = server.getCommunicator();
+			// 追加机器人移动命令处理员
 			communicator.addProcessor(RobotMoveCommand.class, new RobotMoveProcessor(robot));
+			// 追加退出命令处理员
 			communicator.addProcessor(ExitSignal.class, new Communicator.Processor<ExitSignal>() {
 				@Override
 				public void process(ExitSignal msg, Communicator communicator) {
+					// 退出时释放机器人资源
 					robot.release();
 				}
 			});
+			// 创建障碍物监视器并启动
 			ObstacleMonitor obsMonitor = new ObstacleMonitor(robot, communicator);
 			obsMonitor.startReporting();
+			// 创建机器人状态报告器并启动
 			RobotReporter reporter = new RobotReporter(robot, communicator);
 			reporter.startReporting();
 		} catch (IOException e) {

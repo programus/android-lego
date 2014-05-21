@@ -15,6 +15,7 @@ public class RobotReportMessage implements NetMessage {
 	 * (里程从每次程序运行时开始重新从零计算) 
 	 */
 	private int distance;
+
 	public short getSpeed() {
 		return speed;
 	}
