@@ -8,8 +8,6 @@ package org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol;
 public class RobotMoveCommand implements NetMessage {
 	/**
 	 * 命令种类枚举
-	 * @author programus
-	 *
 	 */
 	public enum Command {
 		/** 前进 */
