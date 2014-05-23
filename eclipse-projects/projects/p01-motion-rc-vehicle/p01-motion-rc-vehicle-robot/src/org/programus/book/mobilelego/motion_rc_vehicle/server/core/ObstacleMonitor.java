@@ -7,7 +7,13 @@ import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ExitSignal;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.protocol.ObstacleInforMessage;
 import org.programus.book.mobilelego.motion_rc_vehicle.comm.util.Communicator;
 
+/**
+ * 障碍物监测器
+ * @author programus
+ *
+ */
 public class ObstacleMonitor {
+	/** 监测间隔，单位：毫秒 */
 	private static final int ITERVAL = 200;
 	private VehicleRobot robot;
 	private Communicator communicator;
