@@ -344,11 +344,10 @@ public class MainActivity extends Activity {
         paint.setStrokeCap(Paint.Cap.ROUND);
         paint.setStrokeWidth(3);
         
+        // 绘制单色背景
         canvas.drawARGB(0xff, 0xee, 0xee, 0xde);
         
-        canvas.save();
-        
-        canvas.rotate((float)Math.toDegrees(-angle), center.x, center.y);
+        // 绘制前方基准线
         paint.setColor(0xff5588aa);
         paint.setStyle(Paint.Style.STROKE);
         canvas.drawLine(center.x, center.y, center.x, center.y - radius + 3, paint);
@@ -358,9 +357,10 @@ public class MainActivity extends Activity {
             canvas.rotate(step, center.x, center.y);
             canvas.drawLine(center.x, center.y - radius + 8, center.x, center.y - radius + 3, paint);
         }
-        
-        canvas.restore();
 
+        canvas.save();
+        canvas.rotate((float)Math.toDegrees(angle), center.x, center.y);
+        // 绘制机器人
         paint.setStyle(Paint.Style.FILL);
         paint.setColor(0xcccccccc);
         canvas.drawRect(center.x * 0.75f, center.y * 0.7f, center.x * 1.25f, center.y * 1.3f, paint);
@@ -370,11 +370,13 @@ public class MainActivity extends Activity {
         canvas.drawRect(center.x * 0.92f, center.y * 0.6f, center.x * 1.08f, center.y * 0.7f, paint);
         paint.setColor(0x77ffffff);
         canvas.drawRect(center.x * 0.82f, center.y * 0.77f, center.x * 1.18f, center.y * 0.95f, paint);
+        // 绘制机器人方向指示
         paint.setStyle(Paint.Style.STROKE);
         paint.setColor(0xffff9900);
         canvas.drawLine(center.x, center.y, center.x, center.y - radius + 10, paint);
         canvas.drawLine(center.x - 2, center.y - radius + 20, center.x, center.y - radius + 10, paint);
         canvas.drawLine(center.x + 2, center.y - radius + 20, center.x, center.y - radius + 10, paint);
+        canvas.restore();
 	}
 	
 	private void setupPowerControl() {
