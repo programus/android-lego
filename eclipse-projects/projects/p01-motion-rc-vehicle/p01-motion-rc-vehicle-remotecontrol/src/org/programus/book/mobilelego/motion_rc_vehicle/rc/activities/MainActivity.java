@@ -223,6 +223,12 @@ public class MainActivity extends Activity {
 		this.mClient.setOnConnectedListener(new SppClient.OnConnectedListener() {
 			@Override
 			public void onFailed(Exception e) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        setBtConnectState(BtConnectState.Disconnected);
+                    }
+                });
 				appendLog(e);
 			}
 			
@@ -245,6 +251,12 @@ public class MainActivity extends Activity {
 						}
 					});
 				} catch (Exception e) {
+					runOnUiThread(new Runnable() {
+						@Override
+						public void run() {
+                            setBtConnectState(BtConnectState.Disconnected);
+						}
+					});
 					appendLog(e);
 				}
 			}
