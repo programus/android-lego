@@ -18,7 +18,7 @@ import org.programus.book.mobilelego.motion_rc_vehicle.server.core.VehicleRobot;
 import org.programus.book.mobilelego.motion_rc_vehicle.server.net.Server;
 import org.programus.book.mobilelego.motion_rc_vehicle.server.processor.RobotMoveProcessor;
 
-public class MainClass {
+public class MotionRcRobot {
 	private static EV3 ev3 = LocalEV3.get();
     private static GraphicsLCD g = ev3.getGraphicsLCD();
     private static LED led = ev3.getLED();
