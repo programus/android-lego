@@ -1,27 +1,51 @@
 package org.programus.book.mobilelego.robopet.server.robot;
 
+import lejos.hardware.motor.BaseRegulatedMotor;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.hardware.motor.EV3MediumRegulatedMotor;
 import lejos.hardware.port.MotorPort;
 import lejos.hardware.port.SensorPort;
 import lejos.hardware.sensor.EV3ColorSensor;
 import lejos.hardware.sensor.EV3UltrasonicSensor;
+import lejos.robotics.RegulatedMotor;
 import lejos.robotics.SampleProvider;
 
 public class RobotBody {
 	private static final int HEAD_ROTATE_RANGE = 180;
-	EV3LargeRegulatedMotor[] motors = {
+	private static final int FULL_STEP = 1800;
+	private static final int HALF_STEP = FULL_STEP >> 1;
+	
+	public enum Speed {
+		WalkSpeed(150),
+		AlignSpeed(100),
+		RunSpeed(300);
+		
+		private final int value;
+		Speed(int value) {
+			this.value = value;
+		}
+	}
+	
+	public enum Side {
+		Left, 
+		Right,
+	}
+	
+	private EV3LargeRegulatedMotor[] legs = {
 			new EV3LargeRegulatedMotor(MotorPort.B),
 			new EV3LargeRegulatedMotor(MotorPort.C),
 	};
 	
-	EV3MediumRegulatedMotor headMotor = new EV3MediumRegulatedMotor(MotorPort.A);
+	private EV3MediumRegulatedMotor headMotor = new EV3MediumRegulatedMotor(MotorPort.A);
 	
-	EV3UltrasonicSensor headSensor = new EV3UltrasonicSensor(SensorPort.S3);
-	EV3ColorSensor colorSensor = new EV3ColorSensor(SensorPort.S2);
+	private EV3UltrasonicSensor headSensor = new EV3UltrasonicSensor(SensorPort.S3);
+	private EV3ColorSensor colorSensor = new EV3ColorSensor(SensorPort.S2);
 	
 	private static RobotBody instance = new RobotBody();
 	private RobotBody() {
+		for (BaseRegulatedMotor m : legs) {
+			m.resetTachoCount();
+		}
 	}
 	
 	public static RobotBody getInstance() {
@@ -61,5 +85,58 @@ public class RobotBody {
 		headMotor.flt();
 		headMotor.resetTachoCount();
 		colorSensor.setFloodlight(false);
+	}
+	
+	public boolean isLegAligned(Side side) {
+		return this.legs[side.ordinal()].getTachoCount() % FULL_STEP == 0;
+	}
+	
+	public boolean isLegsAligned() {
+		return this.isLegAligned(Side.Left) && this.isLegAligned(Side.Right);
+	}
+	
+	private void realignLeg(Side side) {
+		BaseRegulatedMotor motor = this.legs[side.ordinal()];
+		int current = motor.getTachoCount();
+		int delta = current % FULL_STEP;
+		int target = current -delta + ((Math.abs(delta) < HALF_STEP) ? 0 : delta > 0 ? FULL_STEP : -FULL_STEP);
+		motor.rotateTo(target, true);
+	}
+	
+	private void realignLegs(boolean immediateReturn) {
+		for (Side side : Side.values()) {
+			this.realignLeg(side);
+		}
+		if (immediateReturn) {
+			for (Side side : Side.values()) {
+				this.legs[side.ordinal()].waitComplete();
+			}
+		}
+	}
+	
+	private void realignLegs() {
+		this.realignLegs(false);
+	}
+	
+	public void forward(int speed) {
+		if (!this.isLegsAligned()) {
+			this.realignLegs();
+		}
+		for (Side side : Side.values()) {
+			RegulatedMotor m = this.legs[side.ordinal()];
+			m.setSpeed(speed);
+			m.forward();
+		}
+	}
+	
+	public void backward(int speed) {
+		if (!this.isLegsAligned()) {
+			this.realignLegs();
+		}
+		for (Side side : Side.values()) {
+			RegulatedMotor m = this.legs[side.ordinal()];
+			m.setSpeed(speed);
+			m.backward();
+		}
 	}
 }
