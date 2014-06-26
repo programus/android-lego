@@ -16,12 +16,12 @@ public class RobotBody {
 	private static final int HALF_STEP = FULL_STEP >> 1;
 	
 	public enum Speed {
-		WalkSpeed(150),
-		AlignSpeed(100),
-		RunSpeed(300);
+		WalkSpeed(600),
+		AlignSpeed(480),
+		RunSpeed(800);
 		
-		private final int value;
-		Speed(int value) {
+		public final int value;
+		private Speed(int value) {
 			this.value = value;
 		}
 	}
@@ -99,7 +99,7 @@ public class RobotBody {
 		BaseRegulatedMotor motor = this.legs[side.ordinal()];
 		int current = motor.getTachoCount();
 		int delta = current % FULL_STEP;
-		int target = current -delta + ((Math.abs(delta) < HALF_STEP) ? 0 : delta > 0 ? FULL_STEP : -FULL_STEP);
+		int target = current - delta + ((Math.abs(delta) < HALF_STEP) ? 0 : delta > 0 ? FULL_STEP : -FULL_STEP);
 		motor.rotateTo(target, true);
 	}
 	
@@ -107,7 +107,7 @@ public class RobotBody {
 		for (Side side : Side.values()) {
 			this.realignLeg(side);
 		}
-		if (immediateReturn) {
+		if (!immediateReturn) {
 			for (Side side : Side.values()) {
 				this.legs[side.ordinal()].waitComplete();
 			}
@@ -119,9 +119,7 @@ public class RobotBody {
 	}
 	
 	public void forward(int speed) {
-		if (!this.isLegsAligned()) {
-			this.realignLegs();
-		}
+		this.realignLegs();
 		for (Side side : Side.values()) {
 			RegulatedMotor m = this.legs[side.ordinal()];
 			m.setSpeed(speed);
@@ -130,13 +128,28 @@ public class RobotBody {
 	}
 	
 	public void backward(int speed) {
-		if (!this.isLegsAligned()) {
-			this.realignLegs();
-		}
+		this.realignLegs();
 		for (Side side : Side.values()) {
 			RegulatedMotor m = this.legs[side.ordinal()];
 			m.setSpeed(speed);
 			m.backward();
 		}
+	}
+	
+	public void stop(boolean immediateReturn) {
+		this.realignLegs(immediateReturn);
+	}
+	
+	public void turn(int speed, Side side) {
+		this.realignLegs();
+		for (Side s : Side.values()) {
+			RegulatedMotor m = this.legs[s.ordinal()];
+			m.setSpeed(s.ordinal() == side.ordinal() ? speed * 9 / 10 : speed);
+			m.forward();
+		}
+	}
+	
+	public int getSpeed() {
+		return Math.max(this.legs[Side.Left.ordinal()].getSpeed(), this.legs[Side.Right.ordinal()].getSpeed());
 	}
 }
