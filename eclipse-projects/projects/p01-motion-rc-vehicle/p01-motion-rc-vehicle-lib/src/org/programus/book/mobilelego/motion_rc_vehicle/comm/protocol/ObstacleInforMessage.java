@@ -16,7 +16,7 @@ public class ObstacleInforMessage implements NetMessage {
 		Unknown((short)0);
 		
 		private final short value;
-		Type(short mm) {
+		private Type(short mm) {
 			this.value = mm;
 		}
 	}
