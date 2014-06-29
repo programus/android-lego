@@ -10,11 +10,35 @@ import lejos.hardware.sensor.EV3UltrasonicSensor;
 import lejos.robotics.RegulatedMotor;
 import lejos.robotics.SampleProvider;
 
+/**
+ * 机器人的躯体，其中包含机器人的肢体行动，没有任何思维指导。
+ * @author programus
+ *
+ */
 public class RobotBody {
+	/** 机器人头的转动角度范围 */
 	private static final int HEAD_ROTATE_RANGE = 180;
+	/** 机器人走一步，马达需要转过的角度 */
 	private static final int FULL_STEP = 1800;
+	/** 机器人走半步，马达需要转过的角度 */
 	private static final int HALF_STEP = FULL_STEP >> 1;
 	
+	/** 与障碍物之间允许的最小距离 */
+	public static final float DISTANCE_LIMIT = 0.3f;
+	
+	/** 转头的马大速度 */
+	public enum HeadSpeed {
+		FastTurnSpeed(500),
+		ScanSpeed(70),
+		SlowTurnSpeed(200);
+		
+		public final int value;
+		private HeadSpeed(int value) {
+			this.value = value;
+		}
+	}
+	
+	/** 步行的马达速度 */
 	public enum Speed {
 		WalkSpeed(600),
 		AlignSpeed(480),
@@ -26,44 +50,57 @@ public class RobotBody {
 		}
 	}
 	
+	/** 双腿的左右边 */
 	public enum Side {
 		Left, 
 		Right,
 	}
 	
-	private EV3LargeRegulatedMotor[] legs = {
+	/** 双腿的马达 */
+	private final EV3LargeRegulatedMotor[] legs = {
 			new EV3LargeRegulatedMotor(MotorPort.B),
 			new EV3LargeRegulatedMotor(MotorPort.C),
 	};
 	
-	private EV3MediumRegulatedMotor headMotor = new EV3MediumRegulatedMotor(MotorPort.A);
+	/** 头颈的马达 */
+	private final EV3MediumRegulatedMotor headMotor = new EV3MediumRegulatedMotor(MotorPort.A);
+	/** 取障碍物距离用的采样器 */
+	private final SampleProvider distanceProvider;
+	/** 头部距离传感器 */
+	private final EV3UltrasonicSensor headSensor = new EV3UltrasonicSensor(SensorPort.S3);
+	/** 头部校对用的颜色传感器 */
+	private final EV3ColorSensor colorSensor = new EV3ColorSensor(SensorPort.S2);
 	
-	private EV3UltrasonicSensor headSensor = new EV3UltrasonicSensor(SensorPort.S3);
-	private EV3ColorSensor colorSensor = new EV3ColorSensor(SensorPort.S2);
-	
+	/** 单例模式的实例 */
 	private static RobotBody instance = new RobotBody();
+	/** 单例模式，构造函数为私有 */
 	private RobotBody() {
+		this.distanceProvider = headSensor.getDistanceMode();
 		for (BaseRegulatedMotor m : legs) {
 			m.resetTachoCount();
 		}
 	}
 	
+	/** 单例模式，取得实例的函数 */
 	public static RobotBody getInstance() {
 		return instance;
 	}
 	
+	/**
+	 * 矫正头部方位
+	 */
 	public void calibrateHead() {
 		SampleProvider light = colorSensor.getRedMode();
 		float[] sample = new float[light.sampleSize()];
 		int range = HEAD_ROTATE_RANGE;
-		headMotor.setSpeed(500);
+		headMotor.setSpeed(HeadSpeed.FastTurnSpeed.value);
 		headMotor.rotateTo(-(range >> 1), false);
 		headMotor.resetTachoCount();
 		byte maxBrightness = 0;
 		byte prev = 0;
 		int startAngle = 0;
 		int endAngle = 0;
-		headMotor.setSpeed(70);
+		headMotor.setSpeed(HeadSpeed.ScanSpeed.value);
 		headMotor.rotateTo(range, true);
 		while (headMotor.isMoving()) {
 			light.fetchSample(sample, 0);
@@ -80,7 +117,7 @@ public class RobotBody {
 			System.out.printf("%d: %d\n", angle, brightness);
 			prev = brightness;
 		}
-		headMotor.setSpeed(200);
+		headMotor.setSpeed(HeadSpeed.SlowTurnSpeed.value);
 		headMotor.rotateTo(((startAngle + endAngle) >> 1), false);
 		headMotor.flt();
 		headMotor.resetTachoCount();
@@ -151,5 +188,50 @@ public class RobotBody {
 	
 	public int getSpeed() {
 		return Math.max(this.legs[Side.Left.ordinal()].getSpeed(), this.legs[Side.Right.ordinal()].getSpeed());
+	}
+	
+	public float getDistance() {
+		float[] samples = new float[this.distanceProvider.sampleSize()];
+		this.distanceProvider.fetchSample(samples, 0);
+		return samples[0];
+	}
+	
+	public boolean isNearObstacle() {
+		return this.getDistance() < DISTANCE_LIMIT;
+	}
+	
+	private int limitAngle(int angle) {
+		if (angle < -90) {
+			angle = -90;
+		}
+		if (angle > 90) {
+			angle = 90;
+		}
+		return angle;
+	}
+	
+	public void turnHead(HeadSpeed speed, int fromAngle, int toAngle, boolean immediateReturn) {
+		if (fromAngle != Integer.MAX_VALUE && fromAngle != Integer.MIN_VALUE) {
+			this.headMotor.setSpeed(HeadSpeed.FastTurnSpeed.value);
+			this.headMotor.rotateTo(limitAngle(fromAngle), false);
+		}
+		this.headMotor.setSpeed(speed.value);
+		this.headMotor.rotateTo(limitAngle(toAngle), immediateReturn);
+	}
+	
+	public boolean isHeadTurning() {
+		return this.headMotor.isMoving();
+	}
+	
+	public int getHeadTurnAngle() {
+		return this.headMotor.getTachoCount();
+	}
+	
+	public void turnOnEyeLight(boolean on) {
+		if (on) {
+			this.headSensor.enable();
+		} else {
+			this.headSensor.disable();
+		}
 	}
 }
