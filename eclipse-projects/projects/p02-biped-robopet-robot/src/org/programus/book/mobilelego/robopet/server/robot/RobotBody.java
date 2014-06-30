@@ -90,36 +90,47 @@ public class RobotBody {
 	 * 矫正头部方位
 	 */
 	public void calibrateHead() {
+		// 开启颜色传感器的反光检测模式
 		SampleProvider light = colorSensor.getRedMode();
+		// 预备取样容器变量
 		float[] sample = new float[light.sampleSize()];
 		int range = HEAD_ROTATE_RANGE;
+		// 头部反向转动
 		headMotor.setSpeed(HeadSpeed.FastTurnSpeed.value);
 		headMotor.rotateTo(-(range >> 1), false);
 		headMotor.resetTachoCount();
+		
 		byte maxBrightness = 0;
 		byte prev = 0;
 		int startAngle = 0;
 		int endAngle = 0;
+		// 转动头部
 		headMotor.setSpeed(HeadSpeed.ScanSpeed.value);
 		headMotor.rotateTo(range, true);
 		while (headMotor.isMoving()) {
+			// 头部转动时，不断采集颜色传感器数值
 			light.fetchSample(sample, 0);
 			int angle = headMotor.getTachoCount();
 			byte brightness = (byte) (sample[0] * 100);
 			if (brightness > maxBrightness) {
+				// 计算目前为止的最大值
 				maxBrightness = brightness;
+				// 亮度值在上升，覆盖记录进入角度
 				startAngle = angle;
 			} else if (prev == maxBrightness && brightness < prev) {
+				// 当前亮度小于前次亮度，且前次亮度是最大值时，
+				// 说明头部已经转过颜色传感器，记录离开角度
 				endAngle = angle;
 			} else if (brightness < maxBrightness - 8) {
+				// 亮度明显低于最大亮度，则头部早已完全转过。
 				break;
 			}
-			System.out.printf("%d: %d\n", angle, brightness);
+			// 记录当前亮度值为下次循环中的前次亮度
 			prev = brightness;
 		}
 		headMotor.setSpeed(HeadSpeed.SlowTurnSpeed.value);
+		// 转至进入/离开颜色传感器区的中心点，作为前方角度。
 		headMotor.rotateTo(((startAngle + endAngle) >> 1), false);
-		headMotor.flt();
 		headMotor.resetTachoCount();
 		colorSensor.setFloodlight(false);
 	}
