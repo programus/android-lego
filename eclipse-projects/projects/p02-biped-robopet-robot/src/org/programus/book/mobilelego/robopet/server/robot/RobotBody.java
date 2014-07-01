@@ -135,14 +135,27 @@ public class RobotBody {
 		colorSensor.setFloodlight(false);
 	}
 	
+	/**
+	 * 判断一侧腿是否回到初始位置
+	 * @param side 
+	 * @return 当腿在初始位置时返回true
+	 */
 	public boolean isLegAligned(Side side) {
 		return this.legs[side.ordinal()].getTachoCount() % FULL_STEP == 0;
 	}
 	
+	/**
+	 * 判断双腿是否都在初始位置
+	 * @return 当双腿都在初始位置时返回true
+	 */
 	public boolean isLegsAligned() {
 		return this.isLegAligned(Side.Left) && this.isLegAligned(Side.Right);
 	}
 	
+	/**
+	 * 重置单侧腿，使其回到初始位置
+	 * @param side
+	 */
 	private void realignLeg(Side side) {
 		BaseRegulatedMotor motor = this.legs[side.ordinal()];
 		int current = motor.getTachoCount();
@@ -151,6 +164,10 @@ public class RobotBody {
 		motor.rotateTo(target, true);
 	}
 	
+	/**
+	 * 重置双腿，使其回到初始位置
+	 * @param immediateReturn true时不等待双腿归位，函数立即返回
+	 */
 	private void realignLegs(boolean immediateReturn) {
 		for (Side side : Side.values()) {
 			this.realignLeg(side);
@@ -162,10 +179,17 @@ public class RobotBody {
 		}
 	}
 	
+	/**
+	 * 重置双腿，使其回到初始位置，并等待双腿归位完毕
+	 */
 	private void realignLegs() {
 		this.realignLegs(false);
 	}
 	
+	/**
+	 * 前进
+	 * @param speed 马达速度
+	 */
 	public void forward(int speed) {
 		this.realignLegs();
 		for (Side side : Side.values()) {
@@ -175,6 +199,10 @@ public class RobotBody {
 		}
 	}
 	
+	/**
+	 * 后退
+	 * @param speed 马达速度
+	 */
 	public void backward(int speed) {
 		this.realignLegs();
 		for (Side side : Side.values()) {
@@ -184,10 +212,19 @@ public class RobotBody {
 		}
 	}
 	
+	/**
+	 * 停止，并重置双腿位置
+	 * @param immediateReturn true时不等待双腿重置，立即返回
+	 */
 	public void stop(boolean immediateReturn) {
 		this.realignLegs(immediateReturn);
 	}
 	
+	/**
+	 * 转向
+	 * @param speed 主马达速度
+	 * @param side 转向方向
+	 */
 	public void turn(int speed, Side side) {
 		this.realignLegs();
 		for (Side s : Side.values()) {
@@ -197,20 +234,37 @@ public class RobotBody {
 		}
 	}
 	
+	/**
+	 * 取得主马达速度
+	 * @return 主马达速度
+	 */
 	public int getSpeed() {
 		return Math.max(this.legs[Side.Left.ordinal()].getSpeed(), this.legs[Side.Right.ordinal()].getSpeed());
 	}
 	
-	public float getDistance() {
+	/**
+	 * 取得障碍物距离
+	 * @return 障碍物距离
+	 */
+	public float getObstacleDistance() {
 		float[] samples = new float[this.distanceProvider.sampleSize()];
 		this.distanceProvider.fetchSample(samples, 0);
 		return samples[0];
 	}
 	
-	public boolean isNearObstacle() {
-		return this.getDistance() < DISTANCE_LIMIT;
+	/**
+	 * 检测是否接近障碍物
+	 * @return true则为已接近障碍物
+	 */
+	public boolean isObstacleNear() {
+		return this.getObstacleDistance() < DISTANCE_LIMIT;
 	}
 	
+	/**
+	 * 限制头部转角
+	 * @param angle 原始头部转角
+	 * @return 限制修正后的转角
+	 */
 	private int limitAngle(int angle) {
 		if (angle < -90) {
 			angle = -90;
@@ -221,6 +275,13 @@ public class RobotBody {
 		return angle;
 	}
 	
+	/**
+	 * 转头
+	 * @param speed 转头速度
+	 * @param fromAngle 转头开始角度，如果开始角度为Integer.MAX_VALUE或Integer.MIN_VALUE，则已当前角度为初始角度，否则会首先快速转至初始角度
+	 * @param toAngle 转头结束角度
+	 * @param immediateReturn true时，立即返回，不等待转头结束
+	 */
 	public void turnHead(HeadSpeed speed, int fromAngle, int toAngle, boolean immediateReturn) {
 		if (fromAngle != Integer.MAX_VALUE && fromAngle != Integer.MIN_VALUE) {
 			this.headMotor.setSpeed(HeadSpeed.FastTurnSpeed.value);
@@ -230,15 +291,27 @@ public class RobotBody {
 		this.headMotor.rotateTo(limitAngle(toAngle), immediateReturn);
 	}
 	
+	/**
+	 * 检测头部是否仍在转动
+	 * @return 头部转动时返回true
+	 */
 	public boolean isHeadTurning() {
 		return this.headMotor.isMoving();
 	}
 	
+	/**
+	 * 取得头部转角
+	 * @return
+	 */
 	public int getHeadTurnAngle() {
 		return this.headMotor.getTachoCount();
 	}
 	
-	public void turnOnEyeLight(boolean on) {
+	/**
+	 * 打开/关闭眼睛灯光
+	 * @param on true - 打开；false - 关闭
+	 */
+	public void turnEyeLight(boolean on) {
 		if (on) {
 			this.headSensor.enable();
 		} else {
