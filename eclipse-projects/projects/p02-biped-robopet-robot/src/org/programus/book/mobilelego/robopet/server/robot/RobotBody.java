@@ -22,6 +22,8 @@ public class RobotBody {
 	private static final int FULL_STEP = 1800;
 	/** 机器人走半步，马达需要转过的角度 */
 	private static final int HALF_STEP = FULL_STEP >> 1;
+	/** 机器人状态保存文件名 */
+	private static final String FILE_NAME = "biped-robopet.status";
 	
 	/** 与障碍物之间允许的最小距离 */
 	public static final float DISTANCE_LIMIT = 0.3f;
@@ -70,6 +72,15 @@ public class RobotBody {
 	private final EV3UltrasonicSensor headSensor = new EV3UltrasonicSensor(SensorPort.S3);
 	/** 头部校对用的颜色传感器 */
 	private final EV3ColorSensor colorSensor = new EV3ColorSensor(SensorPort.S2);
+	
+	/** 体力值 */
+	private int healthPoint;
+	/** 高兴情绪值 */
+	private int happyPoint;
+	/** 怒气值 */
+	private int angerPoint;
+	/** 更新上述数字时的系统时间 */
+	private long updateTime;
 	
 	/** 单例模式的实例 */
 	private static RobotBody instance = new RobotBody();
@@ -317,5 +328,21 @@ public class RobotBody {
 		} else {
 			this.headSensor.disable();
 		}
+	}
+	
+	/**
+	 * 关闭机器人所使用的马达、传感器
+	 */
+	public void close() {
+		this.headMotor.close();
+		for (RegulatedMotor m : this.legs) {
+			m.close();
+		}
+		this.colorSensor.close();
+		this.headSensor.close();
+	}
+	
+	public void save() {
+		// TODO: add save logic.
 	}
 }
