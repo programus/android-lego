@@ -32,6 +32,8 @@ public class RobotParam {
 	/** 情绪向悲伤方向发展时，每毫秒的高兴情绪值增量 */
 	private static final int SAD_STEP = -1;
 	
+	/** 满血，休息需要达到此值，方可活动 */
+	private static final int FULL_HP = 1000 * 60 * 10 * 5;
 	/** 判断是否生气的怒气高临界值，要超过此值才会生气 */
 	private static final int ANGER_HIGH_CRITICAL = ANGER_LEVEL * 3;
 	/** 判断是否生气的怒气低临界值，生气时要降到此值以下才会消气 */
@@ -71,7 +73,7 @@ public class RobotParam {
 			this.load();
 		} catch (IOException e) {
 			this.liveTime = this.happyPoint = this.angerPoint = 0;
-			this.healthPoint = 1000 * 60 * 10 * 5;
+			this.healthPoint = FULL_HP;
 			this.updateTime = System.currentTimeMillis();
 		}
 	}
@@ -155,7 +157,7 @@ public class RobotParam {
 	 */
 	public Mood getMood() {
 		Mood result = null;
-		if (this.healthPoint <= 0) {
+		if (this.mood == Mood.Tired ? this.healthPoint >= FULL_HP : this.healthPoint <= 0) {
 			result = Mood.Tired;
 		} else {
 			boolean isHappy = this.mood == Mood.Happy || this.mood == Mood.Crazy;

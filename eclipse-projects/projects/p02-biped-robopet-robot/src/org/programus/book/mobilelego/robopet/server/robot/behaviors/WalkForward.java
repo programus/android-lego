@@ -23,6 +23,7 @@ public class WalkForward extends AbstractBehavior {
 		int speed = RobotBody.Speed.WalkSpeed.value; 
 		this.body.forward(speed);
 		this.param.setHealthConsume(speed / 100);
+		this.param.please();
 		while (this.isControlling()) {
 			Thread.yield();
 		}

@@ -9,7 +9,7 @@ import org.programus.book.mobilelego.robopet.server.robot.RobotParam;
  */
 public class Stop extends AbstractBehavior {
 	
-	private static int HEALTH_CONSUME = -1;
+	private static int HEALTH_CONSUME = -10;
 
 	@Override
 	public boolean takeControl() {
