@@ -7,6 +7,7 @@ import lejos.hardware.port.MotorPort;
 import lejos.hardware.port.SensorPort;
 import lejos.hardware.sensor.EV3ColorSensor;
 import lejos.hardware.sensor.EV3UltrasonicSensor;
+import lejos.robotics.Color;
 import lejos.robotics.RegulatedMotor;
 import lejos.robotics.SampleProvider;
 
@@ -84,6 +85,7 @@ public class RobotBody {
 		}
 		
 		this.param = new RobotParam();
+		this.calibrateHead();
 	}
 	
 	/** 单例模式，取得实例的函数 */
@@ -236,11 +238,30 @@ public class RobotBody {
 	 */
 	public void turn(int speed, Side side) {
 		this.realignLegs();
+		System.out.println("Turn " + side);
 		for (Side s : Side.values()) {
 			RegulatedMotor m = this.legs[s.ordinal()];
-			m.setSpeed(s.ordinal() == side.ordinal() ? speed * 9 / 10 : speed);
-			m.forward();
+			m.setSpeed(s.ordinal() == side.ordinal() ? speed : speed * 9 / 10);
+			if (s.ordinal() == side.ordinal()) {
+				m.forward();
+			} else {
+				m.backward();
+			}
 		}
+	}
+	
+	public void turn(int speed, int angle, boolean immediateReturn) {
+		this.realignLegs();
+		System.out.println("Turn " + angle);
+		Side side = angle > 0 ? Side.Right : Side.Left;
+		angle = Math.abs(angle);
+		for (Side s : Side.values()) {
+			RegulatedMotor m = this.legs[s.ordinal()];
+			m.setSpeed(s.ordinal() == side.ordinal() ? speed : speed * 9 / 10);
+			int rotateAngle = angle * FULL_STEP * 4 / 90;
+			m.rotate(s == side ? rotateAngle : -rotateAngle * 9 / 10, true);
+		}
+		while (!immediateReturn && this.legs[side.ordinal()].isMoving());
 	}
 	
 	/**
@@ -338,5 +359,35 @@ public class RobotBody {
 		}
 		this.colorSensor.close();
 		this.headSensor.close();
+	}
+	
+	public void presentMood() {
+		switch (this.getParam().getMood()) {
+		case Sad:
+			this.colorSensor.setFloodlight(Color.BLUE);
+			this.turnEyeLight(false);
+			break;
+		case Happy:
+			this.colorSensor.setFloodlight(Color.WHITE);
+			this.turnEyeLight(true);
+			break;
+		case Angry:
+			this.colorSensor.setFloodlight(Color.RED);
+			this.turnEyeLight(true);
+			break;
+		case Crazy:
+			this.colorSensor.setFloodlight(this.colorSensor.getFloodlight() == Color.RED ? Color.BLUE : Color.RED);
+			this.turnEyeLight(!this.headSensor.isEnabled());
+			break;
+		case Normal:
+			this.colorSensor.setFloodlight(false);
+			this.turnEyeLight(false);
+			break;
+		case Tired:
+			this.colorSensor.setFloodlight(false);
+			this.turnEyeLight(false);
+			break;
+		}
+		System.out.println(this.getParam().getMood());
 	}
 }

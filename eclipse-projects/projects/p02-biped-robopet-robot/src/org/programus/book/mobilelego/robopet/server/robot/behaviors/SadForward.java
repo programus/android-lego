@@ -1,26 +1,23 @@
 package org.programus.book.mobilelego.robopet.server.robot.behaviors;
 
 import org.programus.book.mobilelego.robopet.server.robot.RobotBody;
-
+import org.programus.book.mobilelego.robopet.server.robot.RobotParam;
 
 /**
- * 向前行进
+ * 情绪低落时的前行模式
  * @author programus
  *
  */
-public class WalkForward extends AbstractBehavior {
+public class SadForward extends AbstractBehavior {
 
-	/**
-	 * 除其他行为模式外的行为模式，优先级最低，为常态行为模式。
-	 */
 	@Override
 	public boolean takeControl() {
-		return true;
+		return this.param.getMood() == RobotParam.Mood.Sad;
 	}
 
 	@Override
 	public void move() {
-		int speed = RobotBody.Speed.WalkSpeed.value; 
+		int speed = RobotBody.Speed.AlignSpeed.value;
 		this.body.forward(speed);
 		this.param.setHealthConsume(speed / 100);
 		while (this.isControlling()) {
