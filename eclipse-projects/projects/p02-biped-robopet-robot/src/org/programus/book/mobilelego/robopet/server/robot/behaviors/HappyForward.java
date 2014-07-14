@@ -12,7 +12,7 @@ public class HappyForward extends AbstractBehavior {
 
 	@Override
 	public boolean takeControl() {
-		return this.param.getMood() == RobotParam.Mood.Angry;
+		return this.param.getMood() == RobotParam.Mood.Happy;
 	}
 
 	@Override
