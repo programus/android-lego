@@ -20,6 +20,7 @@ public class SadForward extends AbstractBehavior {
 		int speed = RobotBody.Speed.AlignSpeed.value;
 		this.body.forward(speed);
 		this.param.setHealthConsume(speed / 100);
+		this.param.please();
 		while (this.isControlling()) {
 			Thread.yield();
 		}
