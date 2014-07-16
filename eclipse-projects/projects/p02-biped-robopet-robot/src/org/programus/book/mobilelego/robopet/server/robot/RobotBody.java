@@ -211,6 +211,24 @@ public class RobotBody {
 	}
 	
 	/**
+	 * 前进指定步数
+	 * @param speed 马达速度
+	 * @param steps 步数
+	 * @param returnImmediate 是否立即返回
+	 */
+	public void forward(int speed, int steps, boolean returnImmediate) {
+		this.realignLegs();
+		int turnAngle = FULL_STEP * steps;
+		for (Side side : Side.values()) {
+			RegulatedMotor m = this.legs[side.ordinal()];
+			m.setSpeed(speed);
+			m.rotate(turnAngle, true);
+		}
+		
+		while (!returnImmediate && this.legs[0].isMoving());
+	}
+	
+	/**
 	 * 后退
 	 * @param speed 马达速度
 	 */
@@ -221,6 +239,16 @@ public class RobotBody {
 			m.setSpeed(speed);
 			m.backward();
 		}
+	}
+	
+	/**
+	 * 后退指定步数
+	 * @param speed 马达速度
+	 * @param steps 步数
+	 * @param returnImmediate 是否立即返回
+	 */
+	public void backward(int speed, int steps, boolean returnImmediate) {
+		this.forward(speed, -steps, returnImmediate);
 	}
 	
 	/**
@@ -265,11 +293,27 @@ public class RobotBody {
 	}
 	
 	/**
-	 * 取得主马达速度
-	 * @return 主马达速度
+	 * 取得主马达设定速度
+	 * @return 主马达设定速度
 	 */
 	public int getSpeed() {
 		return Math.max(this.legs[Side.Left.ordinal()].getSpeed(), this.legs[Side.Right.ordinal()].getSpeed());
+	}
+	
+	/**
+	 * 取得主马达实际速度
+	 * @return 主马达实际速度
+	 */
+	public int getCurrentSpeed() {
+		return Math.max(this.legs[Side.Left.ordinal()].getRotationSpeed(), this.legs[Side.Right.ordinal()].getRotationSpeed());
+	}
+	
+	/**
+	 * 返回机器人是否仍在移动
+	 * @return 移动时返回true
+	 */
+	public boolean isMoving() {
+		return this.legs[Side.Left.ordinal()].isMoving() || this.legs[Side.Right.ordinal()].isMoving();
 	}
 	
 	/**
