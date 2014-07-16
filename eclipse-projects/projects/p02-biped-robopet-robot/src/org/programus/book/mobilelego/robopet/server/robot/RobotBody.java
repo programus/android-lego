@@ -421,7 +421,9 @@ public class RobotBody {
 			break;
 		case Crazy:
 			this.colorSensor.setFloodlight(this.colorSensor.getFloodlight() == Color.RED ? Color.BLUE : Color.RED);
-			this.turnEyeLight(!this.headSensor.isEnabled());
+			if (Math.random() < 0.8) {
+				this.turnEyeLight(!this.headSensor.isEnabled());
+			}
 			break;
 		case Normal:
 			this.colorSensor.setFloodlight(false);
