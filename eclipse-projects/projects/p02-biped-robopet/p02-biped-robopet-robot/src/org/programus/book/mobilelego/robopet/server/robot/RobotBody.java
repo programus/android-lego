@@ -269,7 +269,7 @@ public class RobotBody {
 		System.out.println("Turn " + side);
 		for (Side s : Side.values()) {
 			RegulatedMotor m = this.legs[s.ordinal()];
-			m.setSpeed(s.ordinal() == side.ordinal() ? speed : speed * 9 / 10);
+			m.setSpeed(speed);
 			if (s.ordinal() == side.ordinal()) {
 				m.forward();
 			} else {
@@ -285,7 +285,7 @@ public class RobotBody {
 		angle = Math.abs(angle);
 		for (Side s : Side.values()) {
 			RegulatedMotor m = this.legs[s.ordinal()];
-			m.setSpeed(s.ordinal() == side.ordinal() ? speed : speed * 9 / 10);
+			m.setSpeed(speed);
 			int rotateAngle = angle * FULL_STEP * 4 / 90;
 			m.rotate(s == side ? rotateAngle : -rotateAngle * 9 / 10, true);
 		}
