@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">SpeechRecognitionTest</string>
+    <string name="title_activity_main">MainActivity</string>
+    <string name="speak">按下说话</string>
+    <string name="not_supported">不支持%s</string>
+    <string name="voice_recognition">语音识别</string>
+
+</resources>
