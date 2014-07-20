@@ -20,7 +20,7 @@ public class HappyForward extends AbstractBehavior {
 		int speed = RobotBody.Speed.RunSpeed.value;
 		this.body.forward(speed);
 		this.param.setHealthConsume(speed / 100);
-		this.param.please();
+		this.param.sadden(false);
 		while (this.isControlling()) {
 			Thread.yield();
 		}

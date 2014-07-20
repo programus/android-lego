@@ -119,9 +119,11 @@ public class RobotParam {
 	/**
 	 * 让机器人悲伤一点
 	 */
-	public void sadden() {
+	public void sadden(boolean verySad) {
 		this.updateStatus();
-		this.happyPoint -= SAD_LEVEL;
+		if (verySad) {
+			this.happyPoint -= SAD_LEVEL;
+		}
 		this.happyIncrease = SAD_STEP;
 	}
 	

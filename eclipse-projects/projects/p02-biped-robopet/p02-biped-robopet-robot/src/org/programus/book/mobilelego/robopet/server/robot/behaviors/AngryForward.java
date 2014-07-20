@@ -20,7 +20,7 @@ public class AngryForward extends AbstractBehavior {
 		int speed = RobotBody.Speed.RunSpeed.value;
 		this.body.forward(speed);
 		this.param.setHealthConsume(speed / 100);
-		this.param.sadden();
+		this.param.sadden(false);
 		while (this.isControlling()) {
 			Thread.yield();
 		}

@@ -14,7 +14,7 @@ public class AvoidObstacle extends AbstractBehavior {
 	public void move() {
 		System.out.println("Begin avoid obstacle");
 		this.param.annoy();
-		this.param.sadden();
+		this.param.sadden(true);
 		this.body.stop(false);
 		this.param.setHealthConsume(HEALTH_CONSUME);
 		this.body.turnHead(RobotBody.HeadSpeed.ScanSpeed, -90, 90, true);

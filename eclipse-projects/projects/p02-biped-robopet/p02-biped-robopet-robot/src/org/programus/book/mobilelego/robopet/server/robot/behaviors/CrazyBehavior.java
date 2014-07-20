@@ -31,7 +31,7 @@ public class CrazyBehavior extends AbstractBehavior {
 	public void move() {
 		int speed = RobotBody.Speed.RunSpeed.value;
 		this.param.setHealthConsume(speed / 100);
-		this.param.sadden();
+		this.param.sadden(false);
 		switch (this.rand.nextInt(MOVE_TYPE)) {
 		case 0:
 			this.body.forward(speed, this.rand.nextInt(MAX_MOVE_STEPS), true);
