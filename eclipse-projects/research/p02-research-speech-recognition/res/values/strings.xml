@@ -2,7 +2,7 @@
 <resources>
 
     <string name="app_name">SpeechRecognitionTest</string>
-    <string name="title_activity_main">MainActivity</string>
+    <string name="title_activity_main">语音识别调研</string>
     <string name="speak">按下说话</string>
     <string name="not_supported">不支持%s</string>
     <string name="voice_recognition">语音识别</string>
