@@ -282,12 +282,11 @@ public class RobotBody {
 		this.realignLegs();
 		System.out.println("Turn " + angle);
 		Side side = angle > 0 ? Side.Right : Side.Left;
-		angle = Math.abs(angle);
 		for (Side s : Side.values()) {
 			RegulatedMotor m = this.legs[s.ordinal()];
 			m.setSpeed(speed);
 			int rotateAngle = angle * FULL_STEP * 4 / 90;
-			m.rotate(s == side ? rotateAngle : -rotateAngle * 9 / 10, true);
+			m.rotate(s == Side.Right ? rotateAngle : -rotateAngle, true);
 		}
 		while (!immediateReturn && this.legs[side.ordinal()].isMoving());
 	}
@@ -397,6 +396,9 @@ public class RobotBody {
 	 * 关闭机器人所使用的马达、传感器
 	 */
 	public void close() {
+		if (!this.isLegsAligned()) {
+			this.stop(false);
+		}
 		this.headMotor.close();
 		for (RegulatedMotor m : this.legs) {
 			m.close();
