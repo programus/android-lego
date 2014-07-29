@@ -20,4 +20,17 @@
 		<nature>org.lejos.ev3.ldt.leJOSEV3Nature</nature>
 		<nature>org.eclipse.jdt.core.javanature</nature>
 	</natures>
+	<linkedResources>
+		<link>
+			<name>lib-src</name>
+			<type>2</type>
+			<locationURI>PROJECT_PARENT/p02-biped-robopet-lib/src</locationURI>
+		</link>
+	</linkedResources>
+	<variableList>
+		<variable>
+			<name>PROJECT_PARENT</name>
+			<value>$%7BPARENT-1-PROJECT_LOC%7D</value>
+		</variable>
+	</variableList>
 </projectDescription>
