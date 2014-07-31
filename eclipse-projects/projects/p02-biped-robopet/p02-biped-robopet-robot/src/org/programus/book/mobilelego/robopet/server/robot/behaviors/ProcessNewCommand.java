@@ -4,7 +4,10 @@ import java.io.IOException;
 
 import lejos.hardware.Sound;
 
+import org.programus.book.mobilelego.robopet.comm.protocol.ExitSignal;
 import org.programus.book.mobilelego.robopet.comm.protocol.PetCommand;
+import org.programus.book.mobilelego.robopet.comm.util.Communicator;
+import org.programus.book.mobilelego.robopet.server.net.Server;
 import org.programus.book.mobilelego.robopet.server.robot.RobotBody;
 import org.programus.book.mobilelego.robopet.server.util.CommandManager;
 
@@ -113,8 +116,18 @@ public class ProcessNewCommand extends AbstractBehavior {
 		this.body.close();
 	}
 	
+	private void closeCommunication() {
+		Server server = Server.getInstance();
+		Communicator comm = server.getCommunicator();
+		if (server.isStarted() && comm != null) {
+			comm.send(ExitSignal.getInstance());
+		}
+		server.close();
+	}
+	
 	private void exit() {
 		this.saveAndClose();
+		this.closeCommunication();
 		Sound.buzz();
 		System.exit(0);
 		cmdMgr.finishProcess();
@@ -122,6 +135,7 @@ public class ProcessNewCommand extends AbstractBehavior {
 	
 	private void shutdown() {
 		this.saveAndClose();
+		this.closeCommunication();
 		try {
 			Runtime.getRuntime().exec(SHUTDOWN_CMD);
 		} catch (IOException e) {
