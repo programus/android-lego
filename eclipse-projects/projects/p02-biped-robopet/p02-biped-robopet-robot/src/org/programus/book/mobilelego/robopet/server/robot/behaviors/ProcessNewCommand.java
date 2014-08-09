@@ -74,7 +74,6 @@ public class ProcessNewCommand extends AbstractBehavior {
 
 	private void stop() {
 		this.body.stop(false);
-		cmdMgr.finishProcess();
 	}
 
 	private void turn(int speed, int angle) {
