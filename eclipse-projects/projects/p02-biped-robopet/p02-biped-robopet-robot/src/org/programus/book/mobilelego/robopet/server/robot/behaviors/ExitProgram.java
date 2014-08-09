@@ -1,5 +1,7 @@
 package org.programus.book.mobilelego.robopet.server.robot.behaviors;
 
+import java.io.IOException;
+
 import org.programus.book.mobilelego.robopet.server.robot.CommandContainer;
 
 public class ExitProgram extends AbstractBehavior {
@@ -19,6 +21,11 @@ public class ExitProgram extends AbstractBehavior {
 		System.out.println("Exit...");
 		cc.setKeyCommand(null);
 		this.body.stop(false);
+		try {
+			this.param.save();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 		this.body.close();
 		System.exit(0);
 	}

@@ -1,24 +1,15 @@
-/**
- * 
- */
 package org.programus.book.mobilelego.robopet.server.processors;
 
-import org.programus.book.mobilelego.robopet.comm.protocol.PetCommand;
+import org.programus.book.mobilelego.robopet.comm.protocol.ExitSignal;
 import org.programus.book.mobilelego.robopet.comm.util.Communicator;
 import org.programus.book.mobilelego.robopet.comm.util.Communicator.Processor;
 import org.programus.book.mobilelego.robopet.server.util.CommandManager;
 
-/**
- * 宠物命令处理器
- * @author programus
- *
- */
-public class PetCommandProcessor implements Processor<PetCommand> {
+public class ExitProcessor implements Processor<ExitSignal>{
 	private CommandManager cmdMgr = CommandManager.getInstance();
 
 	@Override
-	public void process(PetCommand msg, Communicator communicator) {
-		cmdMgr.putCommand(msg);
+	public void process(ExitSignal msg, Communicator communicator) {
+		cmdMgr.clearCommand();
 	}
-
 }

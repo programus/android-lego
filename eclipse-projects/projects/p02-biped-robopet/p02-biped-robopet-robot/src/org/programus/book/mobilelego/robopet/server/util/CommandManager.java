@@ -37,6 +37,11 @@ public class CommandManager {
 		return cmd;
 	}
 	
+	public synchronized void clearCommand() {
+		this.cmdProcessing = null;
+		this.cmdWaiting = null;
+	}
+	
 	public boolean hasCommandWaiting() {
 		return this.cmdWaiting != null;
 	}
