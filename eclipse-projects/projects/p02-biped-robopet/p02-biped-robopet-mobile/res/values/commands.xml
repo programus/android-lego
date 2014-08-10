@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="forward">前进%d步</string>
+    <string name="backward">后退%d步</string>
+    <string name="turn_left">左转%d度</string>
+    <string name="turn_right">右转%d度</string>
+    <string name="stop">停止行动</string>
+    <string name="calm">安静</string>
+    <string name="exit">退出程序</string>
+    <string name="shutdown">关机</string>
+    <string-array name="forward">
+        <item >前进</item>
+        <item >向前</item>
+        <item >向前走</item>
+    </string-array>
+    <string-array name="backward">
+        <item >后退</item>
+        <item >向后</item>
+        <item >向后走</item>
+    </string-array>
+    <string-array name="turn_left">
+        <item >左转</item>
+        <item >向左转</item>
+    </string-array>
+    <string-array name="turn_right">
+        <item >右转</item>
+        <item >向右转</item>
+    </string-array>
+    <string-array name="calm">
+        <item >安静</item>
+        <item >老实点</item>
+        <item >乖</item>
+    </string-array>
+    <string-array name="stop">
+        <item >停止行动</item>
+        <item >停下</item>
+        <item >站住</item>
+    </string-array>
+    <string-array name="exit">
+        <item >退出</item>
+    </string-array>
+    <string-array name="shutdown">
+        <item >关机</item>
+        <item >睡吧</item>
+    </string-array>
+    <string name="unknown">命令未识别</string>
+    
+</resources>

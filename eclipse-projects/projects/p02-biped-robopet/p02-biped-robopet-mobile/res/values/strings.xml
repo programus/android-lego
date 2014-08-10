@@ -4,5 +4,8 @@
     <string name="app_name">Biped RoboPet Master</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_settings">Settings</string>
+    <string name="press">按此开始识别语音命令</string>
+    <string name="not_supported">不支持%s</string>
+    <string name="voice_recognition">语音识别</string>
 
 </resources>
