@@ -14,8 +14,10 @@ public class PetCommand implements NetMessage {
 		Forward,
 		/** 后退 */
 		Backward,
-		/** 转向 */
-		Turn,
+		/** 左转 */
+		TurnLeft,
+		/** 右转 */
+		TurnRight,
 		/** 停止 */
 		Stop,
 		/** 安静 */

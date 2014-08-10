@@ -62,7 +62,10 @@ public class ProcessNewCommand extends AbstractBehavior {
 			case Backward:
 				this.backward(RobotBody.Speed.WalkSpeed.value, cmd.getValue());
 				break;
-			case Turn:
+			case TurnLeft:
+				this.turn(RobotBody.Speed.WalkSpeed.value, -cmd.getValue());
+				break;
+			case TurnRight:
 				this.turn(RobotBody.Speed.WalkSpeed.value, cmd.getValue());
 				break;
 			case Stop:
