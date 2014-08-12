@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="cover_color">#ccffffff</color>
+    <color name="prompt_connect">#ffee7000</color>
+</resources>

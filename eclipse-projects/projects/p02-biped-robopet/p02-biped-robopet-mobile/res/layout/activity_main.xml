@@ -1,4 +1,4 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -12,9 +12,22 @@
         android:hint="@string/press"
         android:textAppearance="?android:attr/textAppearanceLarge" />
 
-    <FrameLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent" >
-    </FrameLayout>
-
-</RelativeLayout>
+	<RelativeLayout
+	    android:id="@+id/cover"
+	    android:layout_width="match_parent"
+	    android:layout_height="match_parent"
+	    android:background="@color/cover_color"
+	    android:clickable="true" >
+	
+	    <TextView
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignParentRight="true"
+	        android:layout_alignParentTop="true"
+	        android:layout_marginRight="@dimen/horizontal_padding"
+	        android:gravity="center_horizontal"
+	        android:text="@string/prompt_connect"
+	        android:textAppearance="?android:attr/textAppearanceLarge"
+	        android:textColor="@color/prompt_connect" />
+	</RelativeLayout>
+</FrameLayout>
