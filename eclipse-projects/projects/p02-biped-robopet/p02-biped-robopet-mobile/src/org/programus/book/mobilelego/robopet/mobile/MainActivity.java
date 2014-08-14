@@ -42,7 +42,8 @@ public class MainActivity extends Activity {
 	
 	private final static String CMD_RE = "^([^0-9]+)([0-9]*)";
 	
-	private final static int DEFAULT_VALUE = 3;
+	private final static int DEFAULT_STEP = 3;
+	private final static int DEFAULT_TURN_ANGLE = 90;
 	
 	private static enum BtConnectState {
 		Disconnected,
@@ -198,7 +199,21 @@ public class MainActivity extends Activity {
 				String valuePart = m.group(VALUE_INDEX);
 				PetCommand.Command cmd = this.mCmdTable.get(cmdPart);
 				if (cmd != null) {
-					int value = valuePart.length() > 0 ? Integer.parseInt(valuePart) : DEFAULT_VALUE;
+					int value = 0;
+					if (valuePart.length() <= 0) {
+						switch (cmd) {
+						case Forward:
+						case Backward:
+							value = DEFAULT_STEP;
+							break;
+						case TurnLeft:
+						case TurnRight:
+							value = DEFAULT_TURN_ANGLE;
+							break;
+						default:
+							value = Integer.parseInt(valuePart);
+						}
+					}
 					PetCommand msg = new PetCommand(cmd, 4);
 					this.sendMessage(msg);
 					message = String.format(this.mCmdFormats.get(cmd), value);
@@ -215,7 +230,10 @@ public class MainActivity extends Activity {
 	}
 	
 	private void sendMessage(NetMessage msg) {
-		Toast.makeText(this, "Send message...", Toast.LENGTH_LONG).show();
+		if (this.mClient.isConnected() && this.mComm != null) {
+			this.mComm.send(msg);
+			Toast.makeText(this, "Command sended.", Toast.LENGTH_LONG).show();
+		}
 	}
 
 	/**
