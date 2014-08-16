@@ -13,6 +13,7 @@ import org.programus.book.mobilelego.robopet.comm.protocol.NetMessage;
 import org.programus.book.mobilelego.robopet.comm.protocol.PetCommand;
 import org.programus.book.mobilelego.robopet.comm.util.Communicator;
 import org.programus.book.mobilelego.robopet.mobile.net.SppClient;
+import org.programus.book.mobilelego.robopet.net.OnConnectedListener;
 
 import android.app.Activity;
 import android.app.AlertDialog;
@@ -140,16 +141,16 @@ public class MainActivity extends Activity {
 	/** 初始化网络客户端 */
 	private void initNetClient() {
 		this.mClient = new SppClient();
-		this.mClient.setOnConnectedListener(new SppClient.OnConnectedListener() {
+		this.mClient.setOnConnectedListener(new OnConnectedListener() {
 			@Override
-			public void onFailed(Exception e) {
+			public void onFailed(final Exception e) {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
                         setBtConnectState(BtConnectState.Disconnected);
+		                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
                     }
                 });
-                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
 			}
 			
 			@Override
@@ -162,14 +163,14 @@ public class MainActivity extends Activity {
                             setBtConnectState(BtConnectState.Connected);
 						}
 					});
-				} catch (Exception e) {
+				} catch (final Exception e) {
 					runOnUiThread(new Runnable() {
 						@Override
 						public void run() {
                             setBtConnectState(BtConnectState.Disconnected);
+			                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
 						}
 					});
-	                Toast.makeText(MainActivity.this, e.getMessage(), Toast.LENGTH_LONG).show();
 				}
 			}
 		});
@@ -211,8 +212,10 @@ public class MainActivity extends Activity {
 							value = DEFAULT_TURN_ANGLE;
 							break;
 						default:
-							value = Integer.parseInt(valuePart);
+							break;
 						}
+					} else {
+						value = Integer.parseInt(valuePart);
 					}
 					PetCommand msg = new PetCommand(cmd, 4);
 					this.sendMessage(msg);

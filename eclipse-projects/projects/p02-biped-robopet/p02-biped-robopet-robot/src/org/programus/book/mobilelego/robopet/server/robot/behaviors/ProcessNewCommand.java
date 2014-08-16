@@ -46,6 +46,7 @@ public class ProcessNewCommand extends AbstractBehavior {
 	public void move() {
 		PetCommand cmd = cmdMgr.getCommandToProcess();
 		if (cmd != null) {
+			System.out.println("Process command: " + cmd);
 			switch (cmd.getCommand()) {
 			case Calm:
 				this.calm();

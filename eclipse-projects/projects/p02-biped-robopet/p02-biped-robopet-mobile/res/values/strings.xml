@@ -12,7 +12,7 @@
     <string name="title_select_device">请选择设备：</string>
     <string name="prompt_connect">↗ \n 点击 [连接]!</string>
     <string name="connect">连接</string>
-    <string name="connecting">连接中...</string>
+    <string name="connecting">连接中#8230;</string>
     <string name="disconnect">断开连接</string>
 
 </resources>

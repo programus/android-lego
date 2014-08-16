@@ -66,4 +66,12 @@ public class PetCommand implements NetMessage {
 	public void setValue(int value) {
 		this.value = value;
 	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "PetCommand [command=" + command + ", value=" + value + "]";
+	}
 }

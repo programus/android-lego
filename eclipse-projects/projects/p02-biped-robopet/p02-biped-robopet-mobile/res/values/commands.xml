@@ -35,6 +35,9 @@
         <item >停止行动</item>
         <item >停下</item>
         <item >站住</item>
+        <item >停止</item>
+        <item >别动</item>
+        <item >不许动</item>
     </string-array>
     <string-array name="exit">
         <item >退出</item>

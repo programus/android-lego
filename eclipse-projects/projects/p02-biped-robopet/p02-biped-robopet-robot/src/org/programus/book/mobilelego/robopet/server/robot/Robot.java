@@ -26,6 +26,7 @@ import org.programus.book.mobilelego.robopet.server.robot.behaviors.Stop;
 import org.programus.book.mobilelego.robopet.server.robot.behaviors.WalkForward;
 
 public class Robot implements OnConnectedListener{
+	private Server server;
 	private Arbitrator arby; 
 	private Behavior[] behaviors;
 	private CommandContainer cc = new CommandContainer();
@@ -63,10 +64,20 @@ public class Robot implements OnConnectedListener{
 		});
 	}
 	
+	private void startServerAsync() {
+		Thread t = new Thread(new Runnable() {
+			@Override
+			public void run() {
+				System.out.println("Server started...");
+				server.start();
+			}
+		}, "Server-Daemon");
+		t.start();
+	}
 	public void start()	 {
-		Server server = Server.getInstance();
+		this.server = Server.getInstance();
 		server.setOnConnectedListener(this);
-		server.start();
+		this.startServerAsync();
 		this.arby.start();
 	}
 
@@ -74,6 +85,7 @@ public class Robot implements OnConnectedListener{
 	public void onConnected(Communicator comm) {
 		comm.addProcessor(PetCommand.class, this.petCmdProc);
 		comm.addProcessor(ExitSignal.class, this.exitProc);
+		System.out.println("Server connected!");
 	}
 
 	@Override

@@ -10,11 +10,13 @@ import org.programus.book.mobilelego.robopet.net.OnConnectedListener;
 
 public class Server {
 	private static Server instance = new Server();
+	private BTConnector connector;
 	private Communicator communicator; 
 	private NXTConnection conn; 
 	private OnConnectedListener onConnectedListener;
 
 	private Server() {
+		this.connector = new BTConnector();
 		this.communicator = new Communicator();
 	}
 	
@@ -24,7 +26,6 @@ public class Server {
 
 	public void start() {
 		if (!this.isStarted()) {
-			BTConnector connector = new BTConnector();
 			conn = connector.waitForConnection(0, NXTConnection.RAW);
 			try {
 				this.communicator.reset(conn.openInputStream(), conn.openOutputStream());
