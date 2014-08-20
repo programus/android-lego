@@ -16,7 +16,6 @@ public class Server {
 	private OnConnectedListener onConnectedListener;
 
 	private Server() {
-		this.connector = new BTConnector();
 		this.communicator = new Communicator();
 	}
 	
@@ -26,6 +25,7 @@ public class Server {
 
 	public void start() {
 		if (!this.isStarted()) {
+			this.connector = new BTConnector();
 			conn = connector.waitForConnection(0, NXTConnection.RAW);
 			try {
 				this.communicator.reset(conn.openInputStream(), conn.openOutputStream());
@@ -54,6 +54,10 @@ public class Server {
 				e.printStackTrace();
 			}
 			this.conn = null;
+		}
+		if (this.connector != null) {
+			this.connector.close();
+			this.connector = null;
 		}
 	}
 	
