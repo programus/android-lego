@@ -27,6 +27,7 @@ import android.content.res.Resources;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.text.Html;
+import android.util.Log;
 import android.util.SparseArray;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -409,10 +410,11 @@ public class MainActivity extends Activity {
 		this.invalidateOptionsMenu();
 		return result;
 	}
-
+	
 	@Override
-	protected void onPause() {
-		super.onPause();
+	protected void onStop() {
+		Log.d("MainActivity", "On Stop");
+		super.onStop();
 		this.remoteFinish();
 		this.disconnect();
 	}
