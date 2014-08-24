@@ -20,7 +20,9 @@ public class Stop extends AbstractBehavior {
 	public void move() {
 		this.body.stop(false);
 		this.param.setHealthConsume(HEALTH_CONSUME);
-		while (this.isControlling()) {
+		while (this.isControlling() && this.takeControl()) {
+			this.param.updateStatus();
+			this.body.presentMood();
 			Thread.yield();
 		}
 		this.param.setHealthConsume(-HEALTH_CONSUME);

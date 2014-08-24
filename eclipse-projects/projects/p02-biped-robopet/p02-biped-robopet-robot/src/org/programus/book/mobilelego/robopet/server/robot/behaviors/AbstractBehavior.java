@@ -33,7 +33,9 @@ public abstract class AbstractBehavior implements Behavior {
 	public void action() {
 		this.controlling = true;
 		this.body.presentMood();
+		System.out.printf("=== %s got control ===\n", this.getClass().getSimpleName());
 		this.move();
+		System.out.printf("=== %s completed move ===\n", this.getClass().getSimpleName());
 	}
 
 	/**
@@ -41,6 +43,7 @@ public abstract class AbstractBehavior implements Behavior {
 	 */
 	@Override
 	public void suppress() {
+		System.out.printf("=== Suppressed %s ===\n", this.getClass().getSimpleName());
 		this.controlling = false;
 	}
 	

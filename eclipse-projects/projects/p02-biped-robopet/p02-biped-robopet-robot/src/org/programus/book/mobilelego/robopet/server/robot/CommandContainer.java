@@ -17,7 +17,6 @@ public class CommandContainer {
 	}
 
 	public void setKeyCommand(KeyCommand keyCommand) {
-		System.out.println("Key: " + keyCommand);
 		this.keyCommand = keyCommand;
 	}
 }

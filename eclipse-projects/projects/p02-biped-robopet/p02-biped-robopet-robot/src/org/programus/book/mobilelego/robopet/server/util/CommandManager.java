@@ -28,6 +28,10 @@ public class CommandManager {
 		return this.cmdWaiting;
 	}
 	
+	public PetCommand peekProcessingCommand() {
+		return this.cmdProcessing;
+	}
+	
 	public synchronized PetCommand getCommandToProcess() {
 		if (this.cmdWaiting != null) {
 			this.cmdProcessing = this.cmdWaiting;
@@ -52,5 +56,14 @@ public class CommandManager {
 	
 	public synchronized void finishProcess() {
 		this.cmdProcessing = null;
+	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "CommandManager [cmdWaiting=" + cmdWaiting + ", cmdProcessing="
+				+ cmdProcessing + "]";
 	}
 }

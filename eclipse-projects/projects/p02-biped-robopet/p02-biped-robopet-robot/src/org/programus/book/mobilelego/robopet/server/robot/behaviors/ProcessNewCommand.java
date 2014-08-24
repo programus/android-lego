@@ -1,6 +1,8 @@
 package org.programus.book.mobilelego.robopet.server.robot.behaviors;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.List;
 
 import lejos.hardware.Sound;
 
@@ -22,6 +24,7 @@ public class ProcessNewCommand extends AbstractBehavior {
 
 	@Override
 	public boolean takeControl() {
+		boolean result = false;
 		if (cmdMgr.hasCommandWaiting()) {
 			// 当有命令传来，在等待时。
 			switch (this.param.getMood()) {
@@ -31,15 +34,21 @@ public class ProcessNewCommand extends AbstractBehavior {
 			{
 				// 疯狂、生气、悲伤的时候
 				PetCommand cmd = cmdMgr.peekCommand();
-				// 只有命令为安静才能取得控制权
-				return cmd.getCommand() == PetCommand.Command.Calm;
+				// 以下命令不论什么情绪都会生效，为超级命令
+				List<PetCommand.Command> superCommands = Arrays.asList(
+						PetCommand.Command.Calm, 
+						PetCommand.Command.Exit,
+						PetCommand.Command.Shutdown
+						); 
+				// 只有命令为以上超级命令时才能取得控制权
+				result = superCommands.contains(cmd.getCommand());
 			}
 			default:
 				// 其他情绪下，直接取得控制权
-				return true;
+				result = true;
 			}
 		}
-		return false;
+		return result;
 	}
 
 	@Override
@@ -78,11 +87,19 @@ public class ProcessNewCommand extends AbstractBehavior {
 
 	private void stop() {
 		this.body.stop(false);
+		while (this.isControlling() && cmdMgr.hasCommandProcessing() && !cmdMgr.hasCommandWaiting()) {
+			PetCommand cmdProcessing = cmdMgr.peekProcessingCommand();
+			if (cmdProcessing == null || cmdProcessing.getCommand() != PetCommand.Command.Stop) {
+				break;
+			}
+			Thread.yield();
+		}
+		cmdMgr.finishProcess();
 	}
 
 	private void turn(int speed, int angle) {
 		this.body.turn(speed, angle, true);
-		while (this.isControlling() && this.body.isMoving()) {
+		while (this.isControlling() && this.body.isMoving() && !cmdMgr.hasCommandWaiting()) {
 			Thread.yield();
 		}
 		cmdMgr.finishProcess();
@@ -90,7 +107,7 @@ public class ProcessNewCommand extends AbstractBehavior {
 
 	private void forward(int speed, int steps) {
 		this.body.forward(speed, steps, true);
-		while (this.isControlling() && this.body.isMoving()) {
+		while (this.isControlling() && this.body.isMoving() && !cmdMgr.hasCommandWaiting()) {
 			Thread.yield();
 		}
 		cmdMgr.finishProcess();
@@ -98,7 +115,7 @@ public class ProcessNewCommand extends AbstractBehavior {
 	
 	private void backward(int speed, int steps) {
 		this.body.backward(speed, steps, true);
-		while (this.isControlling() && this.body.isMoving()) {
+		while (this.isControlling() && this.body.isMoving() && !cmdMgr.hasCommandWaiting()) {
 			Thread.yield();
 		}
 		cmdMgr.finishProcess();

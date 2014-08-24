@@ -88,9 +88,6 @@ public class RobotParam {
 		if (this.healthConsume > 10) {
 			this.healthConsume = 10;
 		}
-		if (this.healthConsume < 1) {
-			this.healthConsume = 1;
-		}
 	}
 	
 	/**
@@ -145,10 +142,10 @@ public class RobotParam {
 			this.angerPoint = 0;
 		}
 		this.happyPoint += dt * this.happyIncrease;
-		this.healthPoint -= dt * this.healthConsume;
 		if (this.healthPoint < 0) {
 			this.healthPoint = 0;
 		}
+		this.healthPoint -= dt * this.healthConsume;
 		this.liveTime += dt;
 		this.updateTime = st;
 	}
@@ -159,7 +156,8 @@ public class RobotParam {
 	 */
 	public Mood getMood() {
 		Mood result = null;
-		if (this.mood == Mood.Tired ? this.healthPoint >= FULL_HP : this.healthPoint <= 0) {
+		this.updateStatus();
+		if (this.healthPoint <= (this.mood == Mood.Tired ? FULL_HP : 0)) {
 			result = Mood.Tired;
 		} else {
 			boolean isHappy = this.mood == Mood.Happy || this.mood == Mood.Crazy;

@@ -19,7 +19,6 @@ import org.programus.book.mobilelego.robopet.server.robot.behaviors.AvoidObstacl
 import org.programus.book.mobilelego.robopet.server.robot.behaviors.CrazyBehavior;
 import org.programus.book.mobilelego.robopet.server.robot.behaviors.ExitProgram;
 import org.programus.book.mobilelego.robopet.server.robot.behaviors.HappyForward;
-import org.programus.book.mobilelego.robopet.server.robot.behaviors.KeepProcessingCommand;
 import org.programus.book.mobilelego.robopet.server.robot.behaviors.ProcessNewCommand;
 import org.programus.book.mobilelego.robopet.server.robot.behaviors.SadForward;
 import org.programus.book.mobilelego.robopet.server.robot.behaviors.Stop;
@@ -43,7 +42,6 @@ public class Robot implements OnConnectedListener{
 			new CrazyBehavior(),
 			new AvoidObstacle(),
 			new Stop(),
-			new KeepProcessingCommand(),
 			new ProcessNewCommand(),
 			new ExitProgram(cc),
 		};
@@ -68,24 +66,29 @@ public class Robot implements OnConnectedListener{
 		Thread t = new Thread(new Runnable() {
 			@Override
 			public void run() {
-				System.out.println("Server started...");
+				Sound.beepSequenceUp();
 				server.start();
 			}
 		}, "Server-Daemon");
 		t.start();
 	}
+	
 	public void start()	 {
 		this.server = Server.getInstance();
 		server.setOnConnectedListener(this);
 		this.startServerAsync();
-		this.arby.start();
+		try {
+			this.arby.start();
+		} catch (Exception e) {
+			e.printStackTrace(System.out);
+		}
 	}
 
 	@Override
 	public void onConnected(Communicator comm) {
 		comm.addProcessor(PetCommand.class, this.petCmdProc);
 		comm.addProcessor(ExitSignal.class, this.exitProc);
-		System.out.println("Server connected!");
+		Sound.beep();
 	}
 
 	@Override

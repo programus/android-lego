@@ -30,7 +30,7 @@ public class CrazyBehavior extends AbstractBehavior {
 	@Override
 	public void move() {
 		int speed = RobotBody.Speed.RunSpeed.value;
-		this.param.setHealthConsume(speed / 100);
+		this.param.setHealthConsume(Math.abs(speed / 100));
 		this.param.sadden(false);
 		switch (this.rand.nextInt(MOVE_TYPE)) {
 		case 0:
@@ -58,7 +58,7 @@ public class CrazyBehavior extends AbstractBehavior {
 		this.body.turnHead(HeadSpeed.FastTurnSpeed, -90, 90, false);
 		this.body.turnHead(HeadSpeed.FastTurnSpeed, -90, 90, false);
 		this.body.turnHead(HeadSpeed.FastTurnSpeed, Integer.MAX_VALUE, 0, false);
-		while (this.isControlling() && this.body.isMoving()) {
+		while (this.isControlling() && this.body.isMoving() && this.takeControl()) {
 			Thread.yield();
 		}
 		task.cancel();

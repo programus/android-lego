@@ -12,7 +12,6 @@ public class AvoidObstacle extends AbstractBehavior {
 
 	@Override
 	public void move() {
-		System.out.println("Begin avoid obstacle");
 		this.param.annoy();
 		this.param.sadden(true);
 		this.body.stop(false);
@@ -23,7 +22,6 @@ public class AvoidObstacle extends AbstractBehavior {
 		while (this.body.isHeadTurning()) {
 			float distance = this.body.getObstacleDistance();
 			int currAngle = this.body.getHeadTurnAngle();
-			System.out.printf("%d: %.2f/%.2f\n", currAngle, distance, maxDistance);
 			if (distance > maxDistance) {
 				maxDistance = distance;
 				angle = currAngle;

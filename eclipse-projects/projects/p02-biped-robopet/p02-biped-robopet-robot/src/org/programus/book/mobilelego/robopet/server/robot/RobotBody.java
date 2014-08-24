@@ -266,7 +266,6 @@ public class RobotBody {
 	 */
 	public void turn(int speed, Side side) {
 		this.realignLegs();
-		System.out.println("Turn " + side);
 		for (Side s : Side.values()) {
 			RegulatedMotor m = this.legs[s.ordinal()];
 			m.setSpeed(speed);
@@ -280,7 +279,6 @@ public class RobotBody {
 	
 	public void turn(int speed, int angle, boolean immediateReturn) {
 		this.realignLegs();
-		System.out.println("Turn " + angle);
 		Side side = angle > 0 ? Side.Right : Side.Left;
 		for (Side s : Side.values()) {
 			RegulatedMotor m = this.legs[s.ordinal()];
@@ -381,18 +379,6 @@ public class RobotBody {
 	}
 	
 	/**
-	 * 打开/关闭眼睛灯光
-	 * @param on true - 打开；false - 关闭
-	 */
-	public void turnEyeLight(boolean on) {
-		if (on) {
-			this.headSensor.enable();
-		} else {
-			this.headSensor.disable();
-		}
-	}
-	
-	/**
 	 * 关闭机器人所使用的马达、传感器
 	 */
 	public void close() {
@@ -411,29 +397,21 @@ public class RobotBody {
 		switch (this.getParam().getMood()) {
 		case Sad:
 			this.colorSensor.setFloodlight(Color.BLUE);
-			this.turnEyeLight(false);
 			break;
 		case Happy:
 			this.colorSensor.setFloodlight(Color.WHITE);
-			this.turnEyeLight(true);
 			break;
 		case Angry:
 			this.colorSensor.setFloodlight(Color.RED);
-			this.turnEyeLight(true);
 			break;
 		case Crazy:
 			this.colorSensor.setFloodlight(this.colorSensor.getFloodlight() == Color.RED ? Color.BLUE : Color.RED);
-			if (Math.random() < 0.8) {
-				this.turnEyeLight(!this.headSensor.isEnabled());
-			}
 			break;
 		case Normal:
 			this.colorSensor.setFloodlight(false);
-			this.turnEyeLight(false);
 			break;
 		case Tired:
 			this.colorSensor.setFloodlight(false);
-			this.turnEyeLight(false);
 			break;
 		}
 		System.out.println(this.getParam().getMood());
