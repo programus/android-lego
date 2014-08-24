@@ -12,6 +12,7 @@ import org.programus.book.mobilelego.robopet.comm.protocol.ExitSignal;
 import org.programus.book.mobilelego.robopet.comm.protocol.NetMessage;
 import org.programus.book.mobilelego.robopet.comm.protocol.PetCommand;
 import org.programus.book.mobilelego.robopet.comm.util.Communicator;
+import org.programus.book.mobilelego.robopet.comm.util.Communicator.Processor;
 import org.programus.book.mobilelego.robopet.mobile.net.SppClient;
 import org.programus.book.mobilelego.robopet.net.OnConnectedListener;
 
@@ -37,7 +38,7 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 import android.widget.Toast;
 
-public class MainActivity extends Activity {
+public class MainActivity extends Activity implements Processor<ExitSignal>{
 	private static final int REQUEST_ENABLE_BT = 5;
 	/** 语音识别对话框的请求代码 */
 	private final static int REQUEST_VOICE_RECOGNITION = 1980;
@@ -158,6 +159,7 @@ public class MainActivity extends Activity {
 			public void onConnected(Communicator comm) {
 				try {
                     mComm = comm;
+                    mComm.addProcessor(ExitSignal.class, MainActivity.this);
 					runOnUiThread(new Runnable() {
 						@Override
 						public void run() {
@@ -218,7 +220,7 @@ public class MainActivity extends Activity {
 					} else {
 						value = Integer.parseInt(valuePart);
 					}
-					PetCommand msg = new PetCommand(cmd, 4);
+					PetCommand msg = new PetCommand(cmd, value);
 					this.sendMessage(msg);
 					message = String.format(this.mCmdFormats.get(cmd), value);
 					break;
@@ -344,6 +346,7 @@ public class MainActivity extends Activity {
 			enableBluetooth();
 			break;
 		}
+		this.mMainView.setText(null);
 		this.invalidateOptionsMenu();
 	}
 
@@ -417,5 +420,15 @@ public class MainActivity extends Activity {
 		super.onStop();
 		this.remoteFinish();
 		this.disconnect();
+	}
+
+	@Override
+	public void process(ExitSignal msg, Communicator communicator) {
+		this.runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				setBtConnectState(BtConnectState.Disconnected);
+			}
+		});
 	}
 }
