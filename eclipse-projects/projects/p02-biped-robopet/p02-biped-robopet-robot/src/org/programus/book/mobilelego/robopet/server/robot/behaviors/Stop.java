@@ -18,13 +18,16 @@ public class Stop extends AbstractBehavior {
 
 	@Override
 	public void move() {
+		// 停止
 		this.body.stop(false);
+		// 体力开始恢复
 		this.param.setHealthConsume(HEALTH_CONSUME);
 		while (this.isControlling() && this.takeControl()) {
 			this.param.updateStatus();
 			this.body.presentMood();
 			Thread.yield();
 		}
+		// 重新开始消耗体力
 		this.param.setHealthConsume(-HEALTH_CONSUME);
 	}
 

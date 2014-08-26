@@ -18,6 +18,7 @@ public class PetCommandProcessor implements Processor<PetCommand> {
 
 	@Override
 	public void process(PetCommand msg, Communicator communicator) {
+		// 收到宠物命令后，投入命令管理器中
 		cmdMgr.putCommand(msg);
 	}
 

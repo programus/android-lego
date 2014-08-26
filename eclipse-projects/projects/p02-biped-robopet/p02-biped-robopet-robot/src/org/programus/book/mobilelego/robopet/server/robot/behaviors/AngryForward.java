@@ -17,9 +17,12 @@ public class AngryForward extends AbstractBehavior {
 
 	@Override
 	public void move() {
+		// 生气时快步走
 		int speed = RobotBody.Speed.RunSpeed.value;
 		this.body.forward(speed);
+		// 走路消耗体力与速度有关
 		this.param.setHealthConsume(Math.abs(speed / 100));
+		// 生气会让宠物悲伤一点
 		this.param.sadden(false);
 		while (this.isControlling() && this.takeControl()) {
 			Thread.yield();

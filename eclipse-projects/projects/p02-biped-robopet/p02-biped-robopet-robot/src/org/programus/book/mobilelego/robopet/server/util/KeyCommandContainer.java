@@ -1,6 +1,6 @@
-package org.programus.book.mobilelego.robopet.server.robot;
+package org.programus.book.mobilelego.robopet.server.util;
 
-public class CommandContainer {
+public class KeyCommandContainer {
 	public static enum KeyCommand {
 		Enter,
 		Esc,

@@ -19,6 +19,7 @@ import org.programus.book.mobilelego.robopet.server.util.CommandManager;
  *
  */
 public class ProcessNewCommand extends AbstractBehavior {
+	/** 系统的关机命令 */
 	private static final String SHUTDOWN_CMD = "init 0";
 	private CommandManager cmdMgr = CommandManager.getInstance();
 
@@ -53,9 +54,11 @@ public class ProcessNewCommand extends AbstractBehavior {
 
 	@Override
 	public void move() {
+		// 取出等待的命令进行处理
 		PetCommand cmd = cmdMgr.getCommandToProcess();
 		if (cmd != null) {
 			System.out.println("Process command: " + cmd);
+			// 根据命令种类执行不同的处理
 			switch (cmd.getCommand()) {
 			case Calm:
 				this.calm();
@@ -86,7 +89,9 @@ public class ProcessNewCommand extends AbstractBehavior {
 	}
 
 	private void stop() {
+		// 停止行动
 		this.body.stop(false);
+		// 当没有新的命令传来，此命令仍在处理时，不断循环，保持停止
 		while (this.isControlling() && cmdMgr.hasCommandProcessing() && !cmdMgr.hasCommandWaiting()) {
 			PetCommand cmdProcessing = cmdMgr.peekProcessingCommand();
 			if (cmdProcessing == null || cmdProcessing.getCommand() != PetCommand.Command.Stop) {

@@ -23,12 +23,13 @@ import org.programus.book.mobilelego.robopet.server.robot.behaviors.ProcessNewCo
 import org.programus.book.mobilelego.robopet.server.robot.behaviors.SadForward;
 import org.programus.book.mobilelego.robopet.server.robot.behaviors.Stop;
 import org.programus.book.mobilelego.robopet.server.robot.behaviors.WalkForward;
+import org.programus.book.mobilelego.robopet.server.util.KeyCommandContainer;
 
 public class Robot implements OnConnectedListener{
 	private Server server;
 	private Arbitrator arby; 
 	private Behavior[] behaviors;
-	private CommandContainer cc = new CommandContainer();
+	private KeyCommandContainer cc = new KeyCommandContainer();
 	
 	private PetCommandProcessor petCmdProc = new PetCommandProcessor();
 	private ExitProcessor exitProc = new ExitProcessor();
@@ -54,7 +55,7 @@ public class Robot implements OnConnectedListener{
 		Button.ESCAPE.addKeyListener(new KeyListener() {
 			@Override
 			public void keyPressed(Key k) {
-				cc.setKeyCommand(CommandContainer.KeyCommand.Esc);
+				cc.setKeyCommand(KeyCommandContainer.KeyCommand.Esc);
 			}
 			@Override
 			public void keyReleased(Key k) {

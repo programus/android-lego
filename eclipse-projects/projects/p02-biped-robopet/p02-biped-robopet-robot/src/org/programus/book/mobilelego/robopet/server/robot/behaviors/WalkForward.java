@@ -20,9 +20,11 @@ public class WalkForward extends AbstractBehavior {
 
 	@Override
 	public void move() {
+		// 走路
 		int speed = RobotBody.Speed.WalkSpeed.value; 
 		this.body.forward(speed);
 		this.param.setHealthConsume(Math.abs(speed / 100));
+		// 走路很开心
 		this.param.please();
 		while (this.isControlling() && this.takeControl()) {
 			Thread.yield();

@@ -17,9 +17,11 @@ public class HappyForward extends AbstractBehavior {
 
 	@Override
 	public void move() {
+		// 开心时要快走
 		int speed = RobotBody.Speed.RunSpeed.value;
 		this.body.forward(speed);
 		this.param.setHealthConsume(Math.abs(speed / 100));
+		// 太开心了，就要开始向悲伤的方向发展
 		this.param.sadden(false);
 		while (this.isControlling() && this.takeControl()) {
 			Thread.yield();
