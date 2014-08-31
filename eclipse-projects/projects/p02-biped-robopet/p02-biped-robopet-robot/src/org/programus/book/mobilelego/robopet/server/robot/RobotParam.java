@@ -115,6 +115,8 @@ public class RobotParam {
 	
 	/**
 	 * 让机器人悲伤一点
+	 * @param verySad 不仅让机器人向悲伤方向发展，
+	 * 而且立刻让机器人的高兴情绪值下降一级
 	 */
 	public void sadden(boolean verySad) {
 		this.updateStatus();
