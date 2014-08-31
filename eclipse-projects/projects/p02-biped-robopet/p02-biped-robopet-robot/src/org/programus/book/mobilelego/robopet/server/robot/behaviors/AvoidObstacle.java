@@ -44,7 +44,10 @@ public class AvoidObstacle extends AbstractBehavior {
 		// 头部转回前方
 		this.body.turnHead(RobotBody.HeadSpeed.FastTurnSpeed, Integer.MIN_VALUE, 0, true);
 		// 转向规避方向
-		this.body.turn(RobotBody.Speed.RunSpeed.value, angle, false);
+		this.body.turn(RobotBody.Speed.RunSpeed.value, angle, true);
+		while (this.isControlling() && this.body.isMoving()) {
+			Thread.yield();
+		}
 		
 		this.body.stop(false);
 	}
