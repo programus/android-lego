@@ -190,21 +190,32 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		this.startActivityForResult(intent, REQUEST_VOICE_RECOGNITION);
 	}
 	
+	/**
+	 * 处理识别出的字符串
+	 * @param results 识别出的所有字符串
+	 */
 	private void processRecognitionResults(List<String> results) {
 		final int CMD_INDEX = 1;
 		final int VALUE_INDEX = 2;
 		
+		// 编译正则表达式
 		Pattern p = Pattern.compile(CMD_RE);
 		String message = null;
+		// 对所有语音识别的候选字符串做处理
 		for (String result : results) {
+			// 试图匹配正则表达式
 			Matcher m = p.matcher(result);
 			if (m.find()) {
+				// 当查找到匹配部分时，分割命令部分和数值部分
 				String cmdPart = m.group(CMD_INDEX);
 				String valuePart = m.group(VALUE_INDEX);
+				// 检查命令是否在我们的可识别命令表中
 				PetCommand.Command cmd = this.mCmdTable.get(cmdPart);
 				if (cmd != null) {
+					// 如果命令为可识别命令，计算数值
 					int value = 0;
 					if (valuePart.length() <= 0) {
+						// 数值不存在，使用默认值
 						switch (cmd) {
 						case Forward:
 						case Backward:
@@ -220,8 +231,11 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 					} else {
 						value = Integer.parseInt(valuePart);
 					}
+					// 用识别出的信息生成宠物命令
 					PetCommand msg = new PetCommand(cmd, value);
+					// 发送命令
 					this.sendMessage(msg);
+					// 将命令与数值转化成标准格式
 					message = String.format(this.mCmdFormats.get(cmd), value);
 					break;
 				}
@@ -229,9 +243,11 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		}
 		
 		if (message == null) {
+			// 若命令并非可识别命令，标记为未识别命令
 			message = this.getString(R.string.unknown);
 		}
 		
+		// 将识别出的命令显示在屏幕上
 		this.mMainView.setText(message);
 	}
 	
