@@ -412,6 +412,7 @@ public class RobotBody {
 			break;
 		case Tired:
 			this.colorSensor.setFloodlight(false);
+			this.headSensor.disable();
 			break;
 		}
 		System.out.println(this.getParam().getMood());
