@@ -1,4 +1,4 @@
-package org.programus.android.imagerecognitiontest;
+package org.programus.book.mobilelego.research.imagerecognitiontest;
 
 import java.util.ArrayList;
 import java.util.Arrays;

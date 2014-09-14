@@ -1,8 +1,10 @@
-package org.programus.android.imagerecognitiontest;
+package org.programus.book.mobilelego.research.imagerecognitiontest;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
+
+import org.programus.book.mobilelego.research.imagerecognitiontest.R;
 
 import android.app.Activity;
 import android.app.AlertDialog;
