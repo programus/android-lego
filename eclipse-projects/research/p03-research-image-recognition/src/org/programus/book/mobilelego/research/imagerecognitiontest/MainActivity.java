@@ -22,6 +22,7 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
+import android.view.View;
 import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.widget.ImageView;
@@ -210,7 +211,10 @@ public class MainActivity extends Activity {
                     Log.d(this.getClass().getName(), "Error when set preview display\n", e);
                 }
                 this.mCamera.setPreviewCallback(mCamPrevCallback);
+                this.mCamera.setDisplayOrientation(90);
+                this.mCameraPreviewView.setVisibility(View.VISIBLE);
                 this.mCamera.startPreview();
+                this.mCameraPreviewView.setVisibility(View.GONE);
                 this.resetSurfaces();
             }
 		}
@@ -239,7 +243,7 @@ public class MainActivity extends Activity {
 	
 	private void resetSurfaces() {
 		if (this.mCamSize != null) {
-			this.mCameraPreviewHolder.setFixedSize(this.mCamSize.width, this.mCamSize.height);
+			this.mCameraPreviewHolder.setFixedSize(this.mCamSize.height, this.mCamSize.width);
 			this.mImageHolder.setFixedSize(this.mCamSize.width, this.mCamSize.height);
 		}
 	}
