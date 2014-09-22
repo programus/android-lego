@@ -68,7 +68,6 @@ public class TrafficSign {
 	private int[] mSignRows;
 	
 	private int[] mHistogram;
-	private int[] mHistoSum;
 	private int[] mStateCount;
 	
 	private Size mImageSize;
@@ -80,7 +79,6 @@ public class TrafficSign {
 	public TrafficSign() {
 		this.mSignRows = new int[this.mSignSize.height];
 		this.mHistogram = new int[0x100];
-		this.mHistoSum = new int[0x100];
 		this.mStateCount = new int[PATTERN.length];
 	}
 	
@@ -104,7 +102,11 @@ public class TrafficSign {
 	public boolean detectTrafficSign() {
 		int threshold = this.getThresholdAndTransportData();
 		this.convertMono(threshold);
-		return false;
+		return this.mSignDetected;
+	}
+	
+	public boolean isSignDetected() {
+		return this.mSignDetected;
 	}
 	
 	private void convertMono(int threshold) {
@@ -117,10 +119,9 @@ public class TrafficSign {
 		int w = this.mImageSize.width;
 		int h = this.mImageSize.height;
 		int wh = w * h;
-		int sum = 0;
+		long sum = 0;
 //		int wl = 0;
-//		int wr = 0;
-//		int m = (histogram.length - 1) >> 1;
+//		int m = (this.mHistogram.length - 1) >> 1;
 //		for (int y = 0; y < h; y++) {
 //			int wy = y * w;
 //			int xh = 0;
@@ -156,15 +157,12 @@ public class TrafficSign {
 			sum += value;
 			this.mMonoBuffer[i] = colorFromGs(value);
 			this.mHistogram[value]++;
-			this.mHistoSum[value] += value;
 //			if (value <= m) {
 //				wl++;
-//			} else {
-//				wr++;
 //			}
 		}
-//		return this.getThreshold(histogram, m, wl, wr);
-		return this.getThreshold(this.mHistogram, this.mHistoSum, wh, sum);
+//		return this.getThreshold(this.mHistogram, m, wl, wh - wl);
+		return this.getThreshold(this.mHistogram, wh, sum);
 	}
 	
 	/**
@@ -193,6 +191,7 @@ public class TrafficSign {
 				}
 			}
 		}
+		Arrays.fill(histogram, 0);
 		return colorFromGs(m);
 	}
 	
@@ -203,21 +202,19 @@ public class TrafficSign {
 	 * @param sum 灰度总值
 	 * @return 阈值
 	 */
-	private int getThreshold(int[] histogram, int[] histoSum, int total, int sum) {
-		final int ACC = 1;
-		int sumB = 0;
-		int wB = 0;
-		int wF = 0;
-		long mB = 0;
-		long mF = 0;
-		long max = 0;
-		long between = 0;
+	private int getThreshold(int[] histogram, int total, long sum) {
+		long sumB = 0;
+		long wB = 0;
+		long wF = 0;
+		double mB = 0;
+		double mF = 0;
+		double max = 0;
+		double between = 0;
 		int threshold1 = 0;
 		int threshold2 = 0;
 		for (int i = 0; i < histogram.length; i++) {
 			wB += histogram[i];
 			int h = histogram[i];
-			System.out.print(histogram[i] + ",");
 			histogram[i] = 0;
 			if (wB == 0) {
 				continue;
@@ -225,17 +222,14 @@ public class TrafficSign {
 			wF = total - wB;
 			if (wF <= 0) {
 				for (int j = i + 1; j < histogram.length; j++) {
-					System.out.print(histogram[j] + ",");
 					histogram[j] = 0;
-					histoSum[j] = 0;
 				}
 				break;
 			}
 			sumB += h * i;
-			histoSum[i] = 0;
-			mB = ACC * sumB / wB;
-			mF = ACC * (sum - sumB) / wF;
-			long d = mB - mF;
+			mB = (double) sumB / wB;
+			mF = (double) (sum - sumB) / wF;
+			double d = mB - mF;
 			between = wB * wF * d * d;
 			if (between >= max) {
 				threshold1 = i;
@@ -245,9 +239,6 @@ public class TrafficSign {
 				}
 			}
 		}
-		
-		System.out.println();
-		System.out.println(threshold1);
 		
 		return colorFromGs((threshold1 + threshold2) >> 1);
 	}
