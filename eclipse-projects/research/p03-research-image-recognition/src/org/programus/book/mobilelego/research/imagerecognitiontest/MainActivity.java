@@ -53,19 +53,27 @@ public class MainActivity extends Activity {
 //				mSimilar.setText(String.valueOf(similarDegree(monoData, mPatternData)));
 //			}
 //		}
+		
+		private long time;
 		@Override
 		public void onPreviewFrame(byte[] data, Camera camera) {
+			long nt = System.currentTimeMillis();
+			System.out.println(nt - time);
+			time = nt;
 			if (mSign != null) {
 				mSign.updateRawBuffer(data, TrafficSign.Rotation.Degree90);
-				if (mSign.detectTrafficSign()) {
+				mSign.detectTrafficSign();
+				camera.addCallbackBuffer(data);
+				if (mSign.isSignDetected()) {
 					mSignView.setVisibility(View.VISIBLE);
 					drawDetectedSign(mSign);
 				} else {
 					mSignView.setVisibility(View.GONE);
 				}
 				drawMonoImage(mSign);
+			} else {
+				camera.addCallbackBuffer(data);
 			}
-			camera.addCallbackBuffer(data);
 		}
 	};
 	
