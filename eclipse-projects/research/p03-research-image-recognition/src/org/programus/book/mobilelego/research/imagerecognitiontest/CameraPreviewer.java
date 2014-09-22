@@ -26,6 +26,8 @@ public class CameraPreviewer {
 	
 	private Camera.PreviewCallback mPreviewCallback;
 	
+	private byte[] mBuffer;
+	
 	public void setPreviewView(SurfaceView previewView) {
 		this.mCameraPreviewView = previewView;
 		this.mCameraPreviewHolder = this.mCameraPreviewView.getHolder();
@@ -104,6 +106,11 @@ public class CameraPreviewer {
 		params.setPictureFormat(ImageFormat.NV21);
 		params.setPreviewSize(this.mCamSize.width, this.mCamSize.height);
 		params.setPictureSize(this.mCamSize.width, this.mCamSize.height);
+		
+		int capacity = (this.mCamSize.width * this.mCamSize.height * ImageFormat.getBitsPerPixel(ImageFormat.NV21)) >> 3;
+		if (this.mBuffer == null || capacity > this.mBuffer.length) {
+			this.mBuffer = new byte[capacity];
+		}
 	}
 	
 	public void startCameraPreview() {
@@ -120,7 +127,9 @@ public class CameraPreviewer {
                 } catch (IOException e) {
                     Log.d(this.getClass().getName(), "Error when set preview display\n", e);
                 }
-                this.mCamera.setPreviewCallback(mPreviewCallback);
+//                this.mCamera.setPreviewCallback(mPreviewCallback);
+                this.mCamera.setPreviewCallbackWithBuffer(mPreviewCallback);
+                this.mCamera.addCallbackBuffer(mBuffer);
                 if (this.mOrientation == Orientation.Portraite) {
 	                this.mCamera.setDisplayOrientation(90);
                 }
