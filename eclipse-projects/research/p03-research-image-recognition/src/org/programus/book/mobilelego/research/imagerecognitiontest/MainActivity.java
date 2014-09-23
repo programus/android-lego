@@ -58,7 +58,7 @@ public class MainActivity extends Activity {
 		@Override
 		public void onPreviewFrame(byte[] data, Camera camera) {
 			long nt = System.currentTimeMillis();
-			System.out.println(nt - time);
+//			System.out.println(nt - time);
 			time = nt;
 			if (mSign != null) {
 				mSign.updateRawBuffer(data, TrafficSign.Rotation.Degree90);
@@ -211,6 +211,7 @@ public class MainActivity extends Activity {
 				mPreviewer.setDisplaySize(size.height >> 2, size.width >> 2);
 				mImageHolder.setFixedSize(size.height, size.width);
 				mSign.setImageSize(size.height, size.width);
+				mSign.setMinUnit(5);
 			}
 		}).create();
 		Log.d(this.getClass().getName(), "Created size select dialog.");

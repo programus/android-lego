@@ -1,8 +1,14 @@
 package org.programus.book.mobilelego.research.imagerecognitiontest;
 
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
 
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.Point;
 
 public class TrafficSign {
@@ -13,14 +19,6 @@ public class TrafficSign {
 		public Size(int w, int h) {
 			this.width = w;
 			this.height = h;
-		}
-		
-		public int getIndex(int x, int y) {
-			return x + y * width;
-		}
-		
-		public int getIndex(Point p) {
-			return this.getIndex(p.x, p.y);
 		}
 		
 		@Override
@@ -47,6 +45,8 @@ public class TrafficSign {
 	public final static int SIGN_EDGE_LEN = 20;
 	private static final int BLOCK_SIZE = 10;
 	private static final int CORNER_COUNT = 4;
+	private static final int WHITE = 0xffffff;
+	private static final int BLACK = 0;
 	/**
 	 * 识别标记的模式。按宽度 黑x1，白x1，黑x3，白x1，黑x1 的模式。
 	 */
@@ -54,11 +54,11 @@ public class TrafficSign {
 	/**
 	 * 识别标记的总宽度（单位：一个单元宽度）
 	 */
-	private static final double PATTERN_SIZE = 7;
+	private static final float PATTERN_SIZE = 7f;
 	/**
 	 * 检查标记时的宽度容错比例。
 	 */
-	private double mVariance = 0.3;
+	private float mVariance = 0.3f;
 	
 	private int mMinUnit = 1;
 	
@@ -68,7 +68,12 @@ public class TrafficSign {
 	private int[] mSignRows;
 	
 	private int[] mHistogram;
-	private int[] mStateCount;
+	private int mThreshold;
+	private List<Point> mCorners;
+	/** 定义数组用以存储标记图形X方向的5个状态(黑、白、宽黑、白、黑)中的像素数 */
+	private int[] mStateCountX;
+	/** 定义数组用以存储标记图形Y方向的5个状态(黑、白、宽黑、白、黑)中的像素数 */
+	private int[] mStateCountY;
 	
 	private Size mImageSize;
 	
@@ -76,10 +81,26 @@ public class TrafficSign {
 	
 	private boolean mSignDetected;
 	
+	private Comparator<Point> pointComparator = new Comparator<Point>() {
+		@Override
+		public int compare(Point pa, Point pb) {
+			boolean d90 = (mRotation.ordinal() & 0x01) == 1;
+			int a = pa.x + (d90 ? -pa.y : pa.y);
+			int y = a - pb.x;
+			if (d90) {
+				y = -y;
+			}
+			int d = y - pb.y;
+			return mRotation == Rotation.Degree0 || mRotation == Rotation.Degree270 ? d : -d;
+		}
+	};
+	
 	public TrafficSign() {
 		this.mSignRows = new int[this.mSignSize.height];
 		this.mHistogram = new int[0x100];
-		this.mStateCount = new int[PATTERN.length];
+		this.mCorners = new ArrayList<Point>(CORNER_COUNT);
+		this.mStateCountX = new int[PATTERN.length];
+		this.mStateCountY = new int[PATTERN.length];
 	}
 	
 	public void updateRawBuffer(byte[] raw, Rotation rotation) {
@@ -100,13 +121,277 @@ public class TrafficSign {
 	}
 	
 	public boolean detectTrafficSign() {
-		int threshold = this.getThresholdAndTransportData();
-		this.convertMono(threshold);
+		this.mThreshold = this.getThresholdAndTransportData();
+//		this.convertMono(this.mThreshold);
+		this.detectCornerAndConvertMono();
 		return this.mSignDetected;
 	}
 	
 	public boolean isSignDetected() {
 		return this.mSignDetected;
+	}
+	
+	private int converAndGetMonoColor(int index) {
+		if (index >= 0 && index < this.mMonoBuffer.length) {
+			return this.mMonoBuffer[index] = this.mMonoBuffer[index] >= this.mThreshold ? WHITE : BLACK;
+		}
+		return WHITE;
+	}
+	
+	private void detectCornerAndConvertMono() {
+		int w = this.mImageSize.width;
+		int h = this.mImageSize.height;
+		if ((this.mRotation.ordinal() & 0x01) == 1) {
+			w = this.mImageSize.height;
+			h = this.mImageSize.width;
+		}
+		
+		this.mCorners.clear();
+		int currentState = 0;
+		int scanStep = this.mMinUnit;
+		// 以scanStep为间隔，扫描各行
+		int skipRows = this.mMinUnit * 3;
+		int skipCols = this.mMinUnit * 3;
+		for (int y = skipRows; y < h; y += scanStep) {
+			// 一行开始，初始化所有状态的像素数
+			Arrays.fill(mStateCountX, 0);
+			// 将状态恢复到状态0（黑）
+			currentState = 0;
+			int base = y * w;
+			for (int x = skipCols; x < w; x++) {
+				// 计算并取出纯黑白颜色。
+				int index = x + base;
+				int color = this.converAndGetMonoColor(index);
+				if (color == BLACK) {
+					// 当前颜色为黑
+					if ((currentState & 0x01) == 1) {
+						// 奇数状态：我们正在计算白色像素数
+						// 因此状态需要前进一步
+						currentState++;
+					}
+					mStateCountX[currentState]++;
+				} else {
+					// 当前颜色为白
+					if ((currentState & 0x01) == 1) {
+						// 奇数状态：我们正在计算白色像素数
+						mStateCountX[currentState]++;
+					} else {
+						// 偶梳状态：我们正在计算黑色像素数
+						if (currentState == 4) {
+							// 发现 黑白黑白黑 之后的白色，颜色模式匹配
+							// 检查颜色宽度比例并试图获取模式中心点
+							Point p = this.getPatternPoint(this.mMonoBuffer, w, h, x, y, mStateCountX, this.mCorners);
+							if (p != null) {
+								// 找到一个点
+								this.mCorners.add(p);
+							} else {
+								// 如果比例不符，跳过前一黑一白部分，重新计算
+								currentState = 3;
+								System.arraycopy(mStateCountX, 2, mStateCountX, 0, 3);
+								mStateCountX[3] = 1;
+								mStateCountX[4] = 0;
+								continue;
+							}
+							// 或许已找到一个，查找下一个，
+							// 恢复各种状态值。
+							Arrays.fill(mStateCountX, 0);
+							currentState = 0;
+						} else {
+							// 当前颜色与正在计算的颜色不同，
+							// 状态向前推移，并追加像素数。
+							mStateCountX[++currentState]++;
+						}
+					}
+				}
+			}
+		}
+		
+		Collections.sort(mCorners, this.pointComparator);
+		if (mCorners.size() >= 3) {
+			Point pa = mCorners.get(1);
+			Point pb = mCorners.get(2);
+			boolean needSwap = false;
+			switch (mRotation) {
+			case Degree0:
+				needSwap = pa.y > pb.y;
+				break;
+			case Degree90:
+				needSwap = pa.x > pb.x;
+				break;
+			case Degree180:
+				needSwap = pa.y < pb.y;
+				break;
+			case Degree270:
+				needSwap = pa.x < pb.x;
+				break;
+			}
+			if (needSwap) {
+				mCorners.set(1, pb);
+				mCorners.set(2, pa);
+			}
+		}
+		
+		System.out.printf("(%d, %d) - %d\n", w, h, this.mCorners.size());
+	}
+	
+	/**
+	 * 判断颜色模式的宽度模式，并在模式匹配成功后计算识别标记图形的中心点，并对中心点有效性进行验证。
+	 * @param im 图片
+	 * @param x 当前扫描的点的X坐标
+	 * @param y 当前扫描的点的Y坐标
+	 * @param stateCount 各个颜色状态的像素数
+	 * @param list 已找到的点的列表
+	 * @return 如果宽度匹配成功，所得点有效，则返回该点，否则返回<code>null</code>
+	 */
+	private Point getPatternPoint(int[] data, int w, int h, int x, int y, int[] stateCount, List<Point> list) {
+		// 计算匹配图形的总像素数
+		int totalFinderSize = 0;
+		for (int count : stateCount) {
+			if (count <= 0) {
+				// 如果某颜色的像素数为0，则直接返回
+				return null;
+			}
+			totalFinderSize += count;
+		}
+		
+		if (totalFinderSize < PATTERN_SIZE * this.mMinUnit) {
+			// 如果总像素数小于识别图像的最低允许像素数，则直接宣告失败返回
+			return null;
+		}
+		
+		// 计算单元宽度
+		float mSize = totalFinderSize / PATTERN_SIZE;
+		// 计算允许容错宽度
+		float maxVar = mSize * this.mVariance;
+		
+		// 检查各个颜色宽度
+		for (int i = 0; i < stateCount.length; i++) {
+			if (Math.abs(mSize * PATTERN[i] - stateCount[i]) >= maxVar * PATTERN[i]) {
+				// 如果颜色宽度超出许可范围，返回
+				return null;
+			}
+		}
+		
+		// 计算中心点X坐标。中心点为当前扫描点向回移动半个识别图形宽度
+		int px = (int) (x - totalFinderSize / 2);
+		// 检查Y轴方向上的模式匹配
+		Arrays.fill(this.mStateCountY, 0);
+		// 从当前扫描坐标向上下检查的最大范围
+		int sizeLimit = (int) (mSize * 3 + maxVar + 1);
+		// 向下检查得到的标记图形下边界
+		int yd = this.fillStateCountY(w, h, px, y, mStateCountY, 1, sizeLimit);
+		// 向上检查得到的标记图形上边界
+		int yu = this.fillStateCountY(w, h, px, y, mStateCountY, -1, sizeLimit);
+		if (yd >= 0 && yu >= 0 && yd > yu) {
+            // 检查各个颜色宽度
+            for (int i = 0; i < mStateCountY.length; i++) {
+                if (Math.abs(mSize * PATTERN[i] - mStateCountY[i]) >= maxVar * PATTERN[i]) {
+                    // 如果颜色宽度超出许可范围，返回
+                    return null;
+                }
+            }
+            // 计算中心点Y坐标
+			int py = (yu + yd) / 2;
+			Point p = new Point(px, py);
+			if (this.isCirclePattern(w, h, px, py, mSize) && this.isValidPoint(p, list, totalFinderSize, yd - yu)) {
+				return p;
+			}
+		}
+		return null;
+	}
+	
+	private boolean isCirclePattern(int w, int h, int x, int y, float size) {
+		// 考察点与中心点的距离
+		// 分别为中心黑圆内、白环中央、黑环中央
+		float[] distances = {
+			1, 2, 3
+		};
+		// 考察点的坐标值比例，以勾三股四弦五取8个点
+		float[] xs = {
+			0.8f, 0.6f, 
+			-0.6f, -0.8f,
+			-0.8f, -0.6f,
+			0.6f, 0.8f
+		};
+		float[] ys = {
+			0.6f, 0.8f,
+			0.8f, 0.6f,
+			-0.6f, -0.8f,
+			-0.8f, -0.6f
+		};
+		
+		boolean isBlack = true;
+		for (float distance : distances) {
+			for (int i = 0; i < xs.length; i++) {
+				float cx = x + distance * size * xs[i];
+				float cy = y + distance * size * ys[i];
+				int color = this.converAndGetMonoColor(Math.round(cx) + Math.round(cy) * w);
+				if ((color == 0) != isBlack) {
+					return false;
+				}
+			}
+			isBlack = !isBlack;
+		}
+		
+		return true;
+	}
+	
+	/**
+	 * 检查指定点是否有效。有时临近的点都会符合模式匹配结果，此函数用以判断发现的点是否与已找到的点过分接近。
+	 * @param p 待检查点
+	 * @param list 已找到的点的列表
+	 * @param limitX X坐标的最近允许距离
+	 * @param limitY Y坐标的最近允许距离
+	 * @return 如果距离足够，判为有效点，返回<code>true</code>，否则返回<code>false</code>
+	 */
+	private boolean isValidPoint(Point p, List<Point> list, int limitX, int limitY) {
+		for (Point ep : list) {
+			int dx = Math.abs(ep.x - p.x);
+			int dy = Math.abs(ep.y - p.y);
+			if (dy < limitY && dx < limitX) {
+				return false;
+			}
+		}
+		
+		return true;
+	}
+	
+	private int fillStateCountY(int w, int h, int cx, int cy, int[] stateCountY, int dir, int sizeLimit) {
+		int currentState = 2;
+		for (int y = cy; y < w && y >= 0; y += dir) {
+			int color = this.converAndGetMonoColor(cx + y * w);
+			if (color == 0) {
+				// 当前颜色黑色
+				if ((currentState & 0x01) == 1) {
+                    // 奇数状态：我们正在计算白色像素数
+                    // 因此状态需要变化
+                    currentState += dir;
+				}
+				stateCountY[currentState]++;
+			} else {
+				// 当前颜色白色
+				if ((currentState & 0x01) == 1) {
+                    // 奇数状态：我们正在计算白色像素数
+                    stateCountY[currentState]++;
+                } else {
+                    // 偶梳状态：我们正在计算黑色像素数
+                	switch (currentState) {
+                	case 2:
+                		currentState += dir;
+                		stateCountY[currentState]++;
+                		break;
+                	case 4:
+                	case 0:
+                		return y;
+                	}
+				}
+			}
+			if (stateCountY[currentState] > sizeLimit) {
+				break;
+			}
+		}
+		
+		return -1;
 	}
 	
 	private void convertMono(int threshold) {
@@ -278,6 +563,20 @@ public class TrafficSign {
 		canvas.translate(tx, ty);
 		canvas.rotate(rotate);
 		canvas.drawBitmap(mMonoBuffer, 0, w, 0.f, 0.f, w, h, false, null);
+		
+		int[] colors = {Color.RED, Color.YELLOW, Color.GREEN, 0xffa0a0ff};
+		Paint p = new Paint();
+		p.setStyle(Paint.Style.STROKE);
+		p.setStrokeWidth(1);
+		int i = 0;
+		for (Point corner : this.mCorners) {
+			p.setColor(colors[i++ % colors.length]);
+			canvas.drawCircle(corner.x, corner.y, 10, p);
+			canvas.drawLine(corner.x, corner.y - 5, corner.x, corner.y + 5, p);
+			canvas.drawLine(corner.x - 5, corner.y, corner.x + 5, corner.y, p);
+			System.out.println("Draw:" + corner);
+		}
+		
 		canvas.restore();
 	}
 	
