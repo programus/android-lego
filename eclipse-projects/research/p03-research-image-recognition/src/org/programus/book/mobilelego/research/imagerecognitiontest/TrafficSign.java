@@ -2,12 +2,12 @@ package org.programus.book.mobilelego.research.imagerecognitiontest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
 import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 
@@ -70,6 +70,7 @@ public class TrafficSign {
 	private int[] mHistogram;
 	private int mThreshold;
 	private List<Point> mCorners;
+	private float mCornerPoints[];
 	/** 定义数组用以存储标记图形X方向的5个状态(黑、白、宽黑、白、黑)中的像素数 */
 	private int[] mStateCountX;
 	/** 定义数组用以存储标记图形Y方向的5个状态(黑、白、宽黑、白、黑)中的像素数 */
@@ -81,24 +82,11 @@ public class TrafficSign {
 	
 	private boolean mSignDetected;
 	
-	private Comparator<Point> pointComparator = new Comparator<Point>() {
-		@Override
-		public int compare(Point pa, Point pb) {
-			boolean d90 = (mRotation.ordinal() & 0x01) == 1;
-			int a = pa.x + (d90 ? -pa.y : pa.y);
-			int y = a - pb.x;
-			if (d90) {
-				y = -y;
-			}
-			int d = y - pb.y;
-			return mRotation == Rotation.Degree0 || mRotation == Rotation.Degree270 ? d : -d;
-		}
-	};
-	
 	public TrafficSign() {
 		this.mSignRows = new int[this.mSignSize.height];
 		this.mHistogram = new int[0x100];
 		this.mCorners = new ArrayList<Point>(CORNER_COUNT);
+		this.mCornerPoints = new float[CORNER_COUNT << 1];
 		this.mStateCountX = new int[PATTERN.length];
 		this.mStateCountY = new int[PATTERN.length];
 	}
@@ -124,6 +112,9 @@ public class TrafficSign {
 		this.mThreshold = this.getThresholdAndTransportData();
 //		this.convertMono(this.mThreshold);
 		this.detectCornerAndConvertMono();
+		if (this.isSignDetected()) {
+			Matrix matrix = this.getMatrix(mCorners);
+		}
 		return this.mSignDetected;
 	}
 	
@@ -184,6 +175,8 @@ public class TrafficSign {
 							if (p != null) {
 								// 找到一个点
 								this.mCorners.add(p);
+								// 推测下一个点的Y坐标，跳过无需扫描的部分
+								y = this.guessY(mCorners, mStateCountX, y, h);
 							} else {
 								// 如果比例不符，跳过前一黑一白部分，重新计算
 								currentState = 3;
@@ -206,32 +199,76 @@ public class TrafficSign {
 			}
 		}
 		
-		Collections.sort(mCorners, this.pointComparator);
-		if (mCorners.size() >= 3) {
-			Point pa = mCorners.get(1);
-			Point pb = mCorners.get(2);
-			boolean needSwap = false;
-			switch (mRotation) {
-			case Degree0:
-				needSwap = pa.y > pb.y;
-				break;
-			case Degree90:
-				needSwap = pa.x > pb.x;
-				break;
-			case Degree180:
-				needSwap = pa.y < pb.y;
-				break;
-			case Degree270:
-				needSwap = pa.x < pb.x;
-				break;
-			}
-			if (needSwap) {
-				mCorners.set(1, pb);
-				mCorners.set(2, pa);
+		System.out.printf("(%d, %d) - %d\n", w, h, this.mCorners.size());
+		
+		this.mSignDetected = this.mCorners.size() == CORNER_COUNT;
+	}
+	
+	private int guessY(List<Point> corners, int[] stateCount, int y, int h) {
+		if (corners.size() >= CORNER_COUNT) {
+			y = h;
+		} else if (corners.size() >= (CORNER_COUNT >> 1)) {
+			Point pa = corners.get(0);
+			int d = Math.abs(corners.get(1).x - pa.x);
+			int ny = pa.y + d - (int) ((stateCount[0] + stateCount[1]) * (1 + this.mVariance));
+			if (ny > y) {
+				y = ny;
 			}
 		}
 		
-		System.out.printf("(%d, %d) - %d\n", w, h, this.mCorners.size());
+		return y;
+	}
+	
+	private Matrix getMatrix(List<Point> corners) {
+		Matrix matrix = new Matrix();
+		float len = BLOCK_SIZE * (SIGN_EDGE_LEN + PATTERN_SIZE);
+		float offset = BLOCK_SIZE * (PATTERN_SIZE + 1) / 2;
+		float[] src = {
+			-offset, -offset, 
+			len - offset, -offset,
+			-offset, len - offset,
+			len - offset, len - offset
+		};
+		
+		float[] dst = this.getArrangedCornerPoints(mCornerPoints);
+		
+		matrix.setPolyToPoly(src, 0, dst, 0, corners.size());
+		return matrix;
+	}
+	
+	private float[] getArrangedCornerPoints(float[] points) {
+		System.out.println(this.mCorners);
+		for (int i = 0; i < CORNER_COUNT; i += 2) {
+			Point pa = mCorners.get(i);
+			Point pb = mCorners.get(i + 1);
+			if (pa.x > pb.x) {
+				pa = mCorners.get(i + 1);
+				pb = mCorners.get(i);
+			}
+			int ia = i;
+			int ib = i + 1;
+			switch (mRotation) {
+			case Degree0:
+				break;
+			case Degree90:
+				ia = ~(i >> 1) & 0x01;
+				ib = ia + 2;
+				break;
+			case Degree180:
+				ib = ~i & 0x02;
+				ia = ib + 1;
+				break;
+			case Degree270:
+				ib = i >> 1;
+				ia = ib + 2;
+				break;
+			}
+			points[ia << 1] = pa.x;
+			points[(ia << 1) + 1] = pa.y;
+			points[ib << 1] = pb.x;
+			points[(ib << 1) + 1] = pb.y;
+		}
+		return points;
 	}
 	
 	/**
@@ -407,36 +444,6 @@ public class TrafficSign {
 		long sum = 0;
 //		int wl = 0;
 //		int m = (this.mHistogram.length - 1) >> 1;
-//		for (int y = 0; y < h; y++) {
-//			int wy = y * w;
-//			int xh = 0;
-//			for (int x = 0; x < w; x++) {
-//				int index = x + wy;
-//				int oi = index;
-//				switch (this.mRotation) {
-//				case Degree0:
-//					break;
-//				case Degree90:
-//					oi = y + wh - h - xh;
-//					break;
-//				case Degree180:
-//					oi = wh - x - wy - 1;
-//					break;
-//				case Degree270:
-//					oi = h - 1 - y + xh;
-//					break;
-//				}
-//				xh += h;
-//				int value = 0xff & this.mRawBuffer[oi];
-//				this.mMonoBuffer[index] = colorFromGs(value);
-//				histogram[value]++;
-//				if (value <= m) {
-//					wl++;
-//				} else {
-//					wr++;
-//				}
-//			}
-//		}
 		for (int i = 0; i < wh; i++) {
 			int value = 0xff & this.mRawBuffer[i];
 			sum += value;
@@ -568,13 +575,14 @@ public class TrafficSign {
 		Paint p = new Paint();
 		p.setStyle(Paint.Style.STROKE);
 		p.setStrokeWidth(1);
-		int i = 0;
-		for (Point corner : this.mCorners) {
-			p.setColor(colors[i++ % colors.length]);
-			canvas.drawCircle(corner.x, corner.y, 10, p);
-			canvas.drawLine(corner.x, corner.y - 5, corner.x, corner.y + 5, p);
-			canvas.drawLine(corner.x - 5, corner.y, corner.x + 5, corner.y, p);
-			System.out.println("Draw:" + corner);
+		for (int i = 0; this.mSignDetected && i < this.mCornerPoints.length; i += 2) {
+			p.setColor(colors[i >> 1 % colors.length]);
+			float x = this.mCornerPoints[i];
+			float y = this.mCornerPoints[i + 1];
+			canvas.drawCircle(this.mCornerPoints[i], this.mCornerPoints[i + 1], 10, p);
+			canvas.drawLine(x, y - 5, x, y + 5, p);
+			canvas.drawLine(x - 5, y, x + 5, y, p);
+			System.out.printf("Draw: (%.0f,%.0f) - %x\n", x, y, p.getColor());
 		}
 		
 		canvas.restore();
