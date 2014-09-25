@@ -2,7 +2,6 @@ package org.programus.book.mobilelego.research.imagerecognitiontest;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 
 import android.graphics.Canvas;
@@ -43,7 +42,7 @@ public class TrafficSign {
 	}
 	
 	public final static int SIGN_EDGE_LEN = 20;
-	private static final int BLOCK_SIZE = 10;
+	public static final int BLOCK_SIZE = 10;
 	private static final int CORNER_COUNT = 4;
 	private static final int WHITE = 0xffffff;
 	private static final int BLACK = 0;
@@ -54,7 +53,7 @@ public class TrafficSign {
 	/**
 	 * 识别标记的总宽度（单位：一个单元宽度）
 	 */
-	private static final float PATTERN_SIZE = 7f;
+	private static final int PATTERN_SIZE = 7;
 	/**
 	 * 检查标记时的宽度容错比例。
 	 */
@@ -65,16 +64,20 @@ public class TrafficSign {
 	private byte[] mRawBuffer;
 	private Rotation mRotation;
 	private int[] mMonoBuffer;
-	private int[] mSignRows;
+	private int[] mSignBuffer;
 	
 	private int[] mHistogram;
 	private int mThreshold;
 	private List<Point> mCorners;
 	private float mCornerPoints[];
+	private float mSignSrcPoints[];
+	private float mSignDstPoints[];
 	/** 定义数组用以存储标记图形X方向的5个状态(黑、白、宽黑、白、黑)中的像素数 */
 	private int[] mStateCountX;
 	/** 定义数组用以存储标记图形Y方向的5个状态(黑、白、宽黑、白、黑)中的像素数 */
 	private int[] mStateCountY;
+	
+	private Paint mPaint;
 	
 	private Size mImageSize;
 	
@@ -83,12 +86,18 @@ public class TrafficSign {
 	private boolean mSignDetected;
 	
 	public TrafficSign() {
-		this.mSignRows = new int[this.mSignSize.height];
+		this.mSignBuffer = new int[this.mSignSize.height * this.mSignSize.width];
 		this.mHistogram = new int[0x100];
 		this.mCorners = new ArrayList<Point>(CORNER_COUNT);
 		this.mCornerPoints = new float[CORNER_COUNT << 1];
+		this.mSignSrcPoints = new float[(this.mSignSize.height * this.mSignSize.width) << 1];
+		this.initSignSrcPoints();
+		this.mSignDstPoints = new float[this.mSignSrcPoints.length];
 		this.mStateCountX = new int[PATTERN.length];
 		this.mStateCountY = new int[PATTERN.length];
+		this.mPaint = new Paint();
+		this.mPaint.setStyle(Paint.Style.STROKE);
+		this.mPaint.setStrokeWidth(1);
 	}
 	
 	public void updateRawBuffer(byte[] raw, Rotation rotation) {
@@ -114,12 +123,38 @@ public class TrafficSign {
 		this.detectCornerAndConvertMono();
 		if (this.isSignDetected()) {
 			Matrix matrix = this.getMatrix(mCorners);
+			this.fillSignData(matrix);
 		}
 		return this.mSignDetected;
 	}
 	
 	public boolean isSignDetected() {
 		return this.mSignDetected;
+	}
+	
+	private void initSignSrcPoints() {
+		int i = 0;
+		int lx = this.mSignSize.width * BLOCK_SIZE;
+		int ly = this.mSignSize.height * BLOCK_SIZE;
+		for (int y = 0; y < ly; y += BLOCK_SIZE) {
+			for (int x = 0; x < lx; x += BLOCK_SIZE) {
+				this.mSignSrcPoints[i++] = x;
+				this.mSignSrcPoints[i++] = y;
+			}
+		}
+	}
+	
+	private void fillSignData(Matrix matrix) {
+		matrix.mapPoints(mSignDstPoints, mSignSrcPoints);
+		int maxIndex = this.mSignDstPoints.length >> 1;
+		for (int base = 0; base < maxIndex; base += this.mSignSize.width) {
+			for (int index = base; index < base + this.mSignSize.width; index++) {
+				int x = Math.round(this.mSignDstPoints[index << 1]);
+				int y = Math.round(this.mSignDstPoints[(index << 1) + 1]);
+				int monoIndex = x + y * ((this.mRotation.ordinal() & 0x01) == 0 ? this.mImageSize.width : this.mImageSize.height);
+				this.mSignBuffer[index] = this.converAndGetMonoColor(monoIndex);
+			}
+		}
 	}
 	
 	private int converAndGetMonoColor(int index) {
@@ -140,16 +175,21 @@ public class TrafficSign {
 		this.mCorners.clear();
 		int currentState = 0;
 		int scanStep = this.mMinUnit;
+		// 上面前面跳过的部分：大小为标记图形大小的一半
+		int minScanSize = this.mMinUnit * (PATTERN_SIZE >> 1);
+		// 图形的最小可能尺寸
+		int minSignSize = this.mMinUnit * ((PATTERN_SIZE >> 1) + SIGN_EDGE_LEN);
+
 		// 以scanStep为间隔，扫描各行
-		int skipRows = this.mMinUnit * 3;
-		int skipCols = this.mMinUnit * 3;
-		for (int y = skipRows; y < h; y += scanStep) {
+		for (int y = minScanSize; y < h; y += scanStep) {
 			// 一行开始，初始化所有状态的像素数
 			Arrays.fill(mStateCountX, 0);
 			// 将状态恢复到状态0（黑）
 			currentState = 0;
 			int base = y * w;
-			for (int x = skipCols; x < w; x++) {
+			// 同一Y坐标上找到的标记点数
+			int foundCount = 0;
+			for (int x = 0; x < w; x++) {
 				// 计算并取出纯黑白颜色。
 				int index = x + base;
 				int color = this.converAndGetMonoColor(index);
@@ -175,8 +215,17 @@ public class TrafficSign {
 							if (p != null) {
 								// 找到一个点
 								this.mCorners.add(p);
+								foundCount++;
 								// 推测下一个点的Y坐标，跳过无需扫描的部分
 								y = this.guessY(mCorners, mStateCountX, y, h);
+								// 已经找到全部四个点，则结束查找
+								if (this.mCorners.size() >= CORNER_COUNT) {
+									break;
+								}
+								// 同一Y坐标下找到两个点，跳入下一个Y坐标进行查找
+								if (foundCount >= 2) {
+									break;
+								}
 							} else {
 								// 如果比例不符，跳过前一黑一白部分，重新计算
 								currentState = 3;
@@ -196,10 +245,19 @@ public class TrafficSign {
 						}
 					}
 				}
+				
+				// 当前行剩下的宽度已不足以容纳一个可能的定位点图形
+				if (foundCount <= 0 && currentState < 3 && x + minScanSize > w) {
+					break;
+				}
+			}
+			// 当前图形已没有足够的大小容纳一个可能的路标图形
+			if (this.mCorners.size() < 2 && y + minSignSize > h) {
+				break;
 			}
 		}
 		
-		System.out.printf("(%d, %d) - %d\n", w, h, this.mCorners.size());
+//		System.out.printf("(%d, %d) - %d\n", w, h, this.mCorners.size());
 		
 		this.mSignDetected = this.mCorners.size() == CORNER_COUNT;
 	}
@@ -222,7 +280,7 @@ public class TrafficSign {
 	private Matrix getMatrix(List<Point> corners) {
 		Matrix matrix = new Matrix();
 		float len = BLOCK_SIZE * (SIGN_EDGE_LEN + PATTERN_SIZE);
-		float offset = BLOCK_SIZE * (PATTERN_SIZE + 1) / 2;
+		float offset = BLOCK_SIZE * (PATTERN_SIZE + 1) / 2.f;
 		float[] src = {
 			-offset, -offset, 
 			len - offset, -offset,
@@ -237,7 +295,7 @@ public class TrafficSign {
 	}
 	
 	private float[] getArrangedCornerPoints(float[] points) {
-		System.out.println(this.mCorners);
+//		System.out.println(this.mCorners);
 		for (int i = 0; i < CORNER_COUNT; i += 2) {
 			Point pa = mCorners.get(i);
 			Point pb = mCorners.get(i + 1);
@@ -297,7 +355,7 @@ public class TrafficSign {
 		}
 		
 		// 计算单元宽度
-		float mSize = totalFinderSize / PATTERN_SIZE;
+		float mSize = (float)totalFinderSize / PATTERN_SIZE;
 		// 计算允许容错宽度
 		float maxVar = mSize * this.mVariance;
 		
@@ -431,12 +489,6 @@ public class TrafficSign {
 		return -1;
 	}
 	
-	private void convertMono(int threshold) {
-		for (int i = 0; i < this.mMonoBuffer.length; i++) {
-			this.mMonoBuffer[i] = this.mMonoBuffer[i] > threshold ? 0xffffff : 0;
-		}
-	}
-	
 	private int getThresholdAndTransportData() {
 		int w = this.mImageSize.width;
 		int h = this.mImageSize.height;
@@ -457,35 +509,35 @@ public class TrafficSign {
 		return this.getThreshold(this.mHistogram, wh, sum);
 	}
 	
-	/**
-	 * 平衡柱状图算法计算黑白分割阈值
-	 * @param histogram 灰度值柱状图信息
-	 * @param m 初始中点
-	 * @param wl 左边重量
-	 * @param wr 右边重量
-	 * @return 阈值
-	 */
-	private int getThreshold(int[] histogram, int m, int wl, int wr) {
-		int s = 0;
-		int e = histogram.length - 1;
-		while (s <= e) {
-			if (wr > wl) {
-				wr -= histogram[e--];
-				if (((s + e) >> 1) < m) {
-					wr += histogram[m];
-					wl -= histogram[m--];
-				}
-			} else {
-				wl -= histogram[s++];
-				if (((s + e) >> 1) > m) {
-					wl += histogram[++m];
-					wr -= histogram[m];
-				}
-			}
-		}
-		Arrays.fill(histogram, 0);
-		return colorFromGs(m);
-	}
+//	/**
+//	 * 平衡柱状图算法计算黑白分割阈值
+//	 * @param histogram 灰度值柱状图信息
+//	 * @param m 初始中点
+//	 * @param wl 左边重量
+//	 * @param wr 右边重量
+//	 * @return 阈值
+//	 */
+//	private int getThreshold(int[] histogram, int m, int wl, int wr) {
+//		int s = 0;
+//		int e = histogram.length - 1;
+//		while (s <= e) {
+//			if (wr > wl) {
+//				wr -= histogram[e--];
+//				if (((s + e) >> 1) < m) {
+//					wr += histogram[m];
+//					wl -= histogram[m--];
+//				}
+//			} else {
+//				wl -= histogram[s++];
+//				if (((s + e) >> 1) > m) {
+//					wl += histogram[++m];
+//					wr -= histogram[m];
+//				}
+//			}
+//		}
+//		Arrays.fill(histogram, 0);
+//		return colorFromGs(m);
+//	}
 	
 	/**
 	 * 大津算法计算黑白分割阈值
@@ -572,23 +624,25 @@ public class TrafficSign {
 		canvas.drawBitmap(mMonoBuffer, 0, w, 0.f, 0.f, w, h, false, null);
 		
 		int[] colors = {Color.RED, Color.YELLOW, Color.GREEN, 0xffa0a0ff};
-		Paint p = new Paint();
-		p.setStyle(Paint.Style.STROKE);
-		p.setStrokeWidth(1);
 		for (int i = 0; this.mSignDetected && i < this.mCornerPoints.length; i += 2) {
-			p.setColor(colors[i >> 1 % colors.length]);
+			mPaint.setColor(colors[i >> 1 % colors.length]);
 			float x = this.mCornerPoints[i];
 			float y = this.mCornerPoints[i + 1];
-			canvas.drawCircle(this.mCornerPoints[i], this.mCornerPoints[i + 1], 10, p);
-			canvas.drawLine(x, y - 5, x, y + 5, p);
-			canvas.drawLine(x - 5, y, x + 5, y, p);
-			System.out.printf("Draw: (%.0f,%.0f) - %x\n", x, y, p.getColor());
+			canvas.drawCircle(this.mCornerPoints[i], this.mCornerPoints[i + 1], 10, mPaint);
+			canvas.drawLine(x, y - 5, x, y + 5, mPaint);
+			canvas.drawLine(x - 5, y, x + 5, y, mPaint);
+//			System.out.printf("Draw: (%.0f,%.0f) - %x\n", x, y, mPaint.getColor());
 		}
 		
 		canvas.restore();
 	}
 	
 	public void drawDetectedSign(Canvas canvas) {
-		
+		canvas.save();
+		canvas.scale((float)canvas.getWidth() / this.mSignSize.width, (float)canvas.getHeight() / this.mSignSize.height);
+		canvas.drawBitmap(mSignBuffer, 0, this.mSignSize.width, 0.f, 0.f, this.mSignSize.width, this.mSignSize.height, false, null);
+		canvas.restore();
+		mPaint.setColor(Color.GREEN);
+		canvas.drawRect(0, 0, canvas.getWidth() - 1, canvas.getHeight() - 1, mPaint);
 	}
 }
