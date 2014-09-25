@@ -39,13 +39,8 @@ public class MainActivity extends Activity {
 				mSign.updateRawBuffer(data, TrafficSign.Rotation.Degree90);
 				mSign.detectTrafficSign();
 				camera.addCallbackBuffer(data);
-				if (mSign.isSignDetected()) {
-					mSignView.setVisibility(View.VISIBLE);
-					drawDetectedSign(mSign);
-				} else {
-					mSignView.setVisibility(View.GONE);
-				}
 				drawMonoImage(mSign);
+				drawDetectedSign(mSign);
 			} else {
 				camera.addCallbackBuffer(data);
 			}

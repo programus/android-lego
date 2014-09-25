@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.PorterDuff;
 
 public class TrafficSign {
 	public static class Size {
@@ -642,6 +643,9 @@ public class TrafficSign {
 		canvas.scale((float)canvas.getWidth() / this.mSignSize.width, (float)canvas.getHeight() / this.mSignSize.height);
 		canvas.drawBitmap(mSignBuffer, 0, this.mSignSize.width, 0.f, 0.f, this.mSignSize.width, this.mSignSize.height, false, null);
 		canvas.restore();
+		if (!this.mSignDetected) {
+			canvas.drawColor(0xff7f0000, PorterDuff.Mode.DARKEN);
+		}
 		mPaint.setColor(Color.GREEN);
 		canvas.drawRect(0, 0, canvas.getWidth() - 1, canvas.getHeight() - 1, mPaint);
 	}
