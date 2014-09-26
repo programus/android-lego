@@ -11,7 +11,6 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
-import android.view.View;
 import android.view.WindowManager;
 
 public class MainActivity extends Activity {
@@ -25,6 +24,7 @@ public class MainActivity extends Activity {
 	private SurfaceView mSignView;
 	private SurfaceHolder mSignHolder;
 	
+	private TrafficSignDetector mDetector;
 	private TrafficSign mSign;
 	
 	private Camera.PreviewCallback mCamPrevCallback = new Camera.PreviewCallback() {
@@ -33,21 +33,21 @@ public class MainActivity extends Activity {
 		@Override
 		public void onPreviewFrame(byte[] data, Camera camera) {
 			long nt = System.currentTimeMillis();
-			System.out.println(nt - time);
+			System.out.println(1000. / (nt - time));
 			time = nt;
-			if (mSign != null) {
-				mSign.updateRawBuffer(data, TrafficSign.Rotation.Degree90);
-				mSign.detectTrafficSign();
+			if (mDetector != null) {
+				mDetector.updateRawBuffer(data, TrafficSignDetector.Rotation.Degree90);
+				mDetector.detectTrafficSign();
 				camera.addCallbackBuffer(data);
-				drawMonoImage(mSign);
-				drawDetectedSign(mSign);
+				drawMonoImage(mDetector);
+				drawDetectedSign(mDetector);
 			} else {
 				camera.addCallbackBuffer(data);
 			}
 		}
 	};
 	
-	private void drawMonoImage(TrafficSign sign) {
+	private void drawMonoImage(TrafficSignDetector sign) {
 		Canvas canvas = this.mImageHolder.lockCanvas();
 		if (canvas != null) {
 			try {
@@ -58,11 +58,11 @@ public class MainActivity extends Activity {
 		}
 	}
 	
-	private void drawDetectedSign(TrafficSign sign) {
+	private void drawDetectedSign(TrafficSignDetector detector) {
 		Canvas canvas = this.mSignHolder.lockCanvas();
 		if (canvas != null) {
 			try {
-				sign.drawDetectedSign(canvas);
+				detector.getDetectedSign().draw(canvas, !detector.isSignDetected());
 			} finally {
 				this.mSignHolder.unlockCanvasAndPost(canvas);
 			}
@@ -78,9 +78,11 @@ public class MainActivity extends Activity {
 		this.mImageHolder = imageView.getHolder();
 		this.mSignView = (SurfaceView) this.findViewById(R.id.sign);
 		this.mSignHolder = this.mSignView.getHolder();
-		this.mSignHolder.setFixedSize(TrafficSign.SIGN_EDGE_LEN * TrafficSign.BLOCK_SIZE, TrafficSign.SIGN_EDGE_LEN * TrafficSign.BLOCK_SIZE);
+		this.mSignHolder.setFixedSize(TrafficSign.SIGN_EDGE_LEN * TrafficSignDetector.BLOCK_SIZE, TrafficSign.SIGN_EDGE_LEN * TrafficSignDetector.BLOCK_SIZE);
 		
+		this.mDetector = new TrafficSignDetector();
 		this.mSign = new TrafficSign();
+		this.mDetector.setSign(this.mSign);
 		this.askCameraSize();
 	}
 	
@@ -101,8 +103,8 @@ public class MainActivity extends Activity {
 				mPreviewer.setOrientation(CameraPreviewer.Orientation.Portraite);
 				mPreviewer.setDisplaySize(size.height >> 2, size.width >> 2);
 				mImageHolder.setFixedSize(size.height, size.width);
-				mSign.setImageSize(size.height, size.width);
-				mSign.setMinUnit(5);
+				mDetector.setImageSize(size.height, size.width);
+				mDetector.setMinUnit(5);
 			}
 		}).create();
 		Log.d(this.getClass().getName(), "Created size select dialog.");
