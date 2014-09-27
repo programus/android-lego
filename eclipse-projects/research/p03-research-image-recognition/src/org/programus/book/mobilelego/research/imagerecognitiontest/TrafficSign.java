@@ -15,6 +15,9 @@ import android.graphics.PorterDuff;
 public class TrafficSign {
 	public final static byte SIGN_EDGE_LEN = 20;
 	
+	private final static int X_MASK = 0xff;
+	private final static int Y_SHIFT = 8;
+	
 	private short[] data;
 	private int size;
 	private float[] points;
@@ -24,6 +27,12 @@ public class TrafficSign {
 	public TrafficSign(short... data) {
 		this();
 		System.arraycopy(data, 0, this.data, 0, this.data.length);
+		this.size = data.length;
+		int i = 0;
+		for (short d : data) {
+			this.points[i++] = d & X_MASK;
+			this.points[i++] = d >> Y_SHIFT;
+		}
 	}
 	
 	public TrafficSign() {
@@ -44,7 +53,7 @@ public class TrafficSign {
 	public void addPoint(int x, int y) {
 		this.points[size << 1] = x;
 		this.points[(size << 1) + 1] = y;
-		this.data[size++] = (short)((x << 8) | y);
+		this.data[size++] = (short)((y << 8) | x);
 	}
 	
 	public void draw(Canvas canvas, boolean disabled) {
@@ -80,7 +89,6 @@ public class TrafficSign {
 		for (int i = 0; i < this.size; i++) {
 			hash = (hash << 5) - hash + this.data[i];
 		}
-		
 		return hash;
 	}
 }
