@@ -26,12 +26,15 @@ public class TrafficSign {
 	
 	public TrafficSign(short... data) {
 		this();
-		System.arraycopy(data, 0, this.data, 0, this.data.length);
-		this.size = data.length;
+		this.size = Math.min(data.length, this.data.length);
+		System.arraycopy(data, 0, this.data, 0, size);
 		int i = 0;
 		for (short d : data) {
 			this.points[i++] = d & X_MASK;
 			this.points[i++] = d >> Y_SHIFT;
+			if (i > size << 1) {
+				break;
+			}
 		}
 	}
 	
@@ -44,9 +47,8 @@ public class TrafficSign {
 		if (this.data == null || this.data.length < len) {
 			this.data = new short[len];
 			this.points = new float[len << 1];
-		} else {
-			Arrays.fill(data, (short)0xffff);
 		}
+		Arrays.fill(data, (short)0xffff);
 		this.size = 0;
 	}
 	
@@ -63,6 +65,7 @@ public class TrafficSign {
 		canvas.drawColor(Color.WHITE);
 		canvas.save();
 		canvas.scale((float)canvas.getWidth() / SIGN_EDGE_LEN, (float)canvas.getHeight() / SIGN_EDGE_LEN);
+		canvas.translate(.5f, .5f);
 		canvas.drawPoints(points, 0, size << 1, paint);
 		canvas.restore();
 		if (disabled) {
@@ -77,7 +80,15 @@ public class TrafficSign {
 		boolean result = false;
 		if (obj instanceof TrafficSign) {
 			TrafficSign sign = (TrafficSign) obj;
-			result = sign.size == this.size && Arrays.equals(this.data, sign.data);
+			result = sign.size == this.size;
+			if (result) {
+				for (int i = 0; i < size; i++) {
+					if (sign.data[i] != this.data[i]) {
+						result = false;
+						break;
+					}
+				}
+			}
 		}
 		
 		return result;
