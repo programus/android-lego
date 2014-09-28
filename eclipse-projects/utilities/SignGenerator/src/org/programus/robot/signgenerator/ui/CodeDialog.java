@@ -54,6 +54,7 @@ public class CodeDialog extends JDialog {
 		this.setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
 		this.pack();
 		this.setLocationRelativeTo(this.getParent());
+		this.text.requestFocusInWindow();
 	}
 	
 	private void initComponents() {
@@ -66,7 +67,7 @@ public class CodeDialog extends JDialog {
 	}
 	
 	private void initTextArea() {
-		this.text = new JTextArea(this.data.getEdgeLen() + 2, this.data.getEdgeLen() * 5 + 10);
+		this.text = new JTextArea(this.data.getEdgeLen() + 2, this.data.getEdgeLen() * 7 + 10);
 		this.text.setTabSize(2);
 		this.text.setEditable(false);
 		Font font = this.text.getFont();
@@ -114,6 +115,9 @@ public class CodeDialog extends JDialog {
 	
 	private void resetTextArea() {
 		this.text.setText(this.generateCode());
+		this.text.setSelectionStart(0);
+		this.text.setSelectionEnd(this.text.getText().length());
+		this.text.requestFocus();
 	}
 	
 	private String generateCode() {
@@ -148,7 +152,7 @@ public class CodeDialog extends JDialog {
 							sb.append(lf);
 							sb.append('\t');
 						}
-						sb.append(String.format("0x%02x%02x, ", y, x));
+						sb.append(String.format("(short)0x%02x%02x, ", y, x));
 						count++;
 					}
 				} else {
