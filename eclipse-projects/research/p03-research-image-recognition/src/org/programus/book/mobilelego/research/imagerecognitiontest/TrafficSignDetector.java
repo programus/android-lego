@@ -58,45 +58,60 @@ public class TrafficSignDetector {
 	public static final int BLOCK_SIZE = 10;
 	/** 图片识别时，边角识别模式的个数 */
 	private static final int CORNER_COUNT = 4;
-	private static final int WHITE = 0xffffff;
-	private static final int BLACK = 0;
-	/**
-	 * 识别标记的模式。按宽度 黑x1，白x1，黑x3，白x1，黑x1 的模式。
-	 */
+	/** 无透明度信息颜色的掩码 */
+	private static final int COLOR_MASK = 0xffffff;
+	/** 识别标记的模式。按宽度 黑x1，白x1，黑x3，白x1，黑x1 的模式。 */
 	private static final int[] PATTERN = {1, 1, 3, 1, 1};
-	/**
-	 * 识别标记的总宽度（单位：一个单元宽度）
-	 */
+	/** 识别标记的总宽度（单位：一个单元宽度） */
 	private static final int PATTERN_SIZE = 7;
-	/**
-	 * 检查标记时的宽度容错比例。
-	 */
+	/** 检查标记时的宽度容错比例。 */
 	private float mVariance = 0.3f;
-	
+	/** 最小识别单位长度 */
 	private int mMinUnit = 1;
 	
+	/** 存储原始图片数据的数组 */
 	private byte[] mRawBuffer;
+	/** 
+	 * 存储处理中图片（包含处理数据）数据的数组。
+	 * 数组中最初保存由原始数据而来的灰度值，处理中使用到的点转为黑白数值
+	 */
 	private int[] mInfoBuffer;
+	/** 旋转信息 */
 	private Rotation mRotation;
 	
-	private int[] mHistogram;
+	/** 黑白分割阈值 */
 	private int mThreshold;
+	/** 为寻找黑白分割阈值而准备的柱状图数组 */
+	private int[] mHistogram;
+	
+	/** 四个角识别模式的坐标 */
 	private List<Point> mCorners;
+	/** 存储四个角坐标的数组，绘图用，中间变量 */
 	private float mCornerPoints[];
+	/** 路标坐标映射源的点，即标准路标中的点，中间变量 */
 	private float mSignSrcPoints[];
+	/** 路标坐标映射目标的店，即实际图片中的点，中间变量 */
 	private float mSignDstPoints[];
-	/** 定义数组用以存储标记图形X方向的5个状态(黑、白、宽黑、白、黑)中的像素数 */
+	/** 定义数组用以存储标记图形X方向的5个状态(黑、白、宽黑、白、黑)中的像素数，中间变量 */
 	private int[] mStateCountX;
-	/** 定义数组用以存储标记图形Y方向的5个状态(黑、白、宽黑、白、黑)中的像素数 */
+	/** 定义数组用以存储标记图形Y方向的5个状态(黑、白、宽黑、白、黑)中的像素数，中间变量 */
 	private int[] mStateCountY;
 	
+	/** 绘图所需的Paint对象 */
 	private Paint mPaint;
 	
+	/** 待处理图片大小，以实际角度下的数值为准 */
 	private Size mImageSize;
 	
+	/** 路标大小 */
 	private final Size mSignSize = new Size(TrafficSign.SIGN_EDGE_LEN, TrafficSign.SIGN_EDGE_LEN);
 	
+	/** 
+	 * 检测出的路标对象。
+	 * 未检测出路标时，不清空此对象，将保留上次检测出的内容。
+	 */
 	private TrafficSign mDetectedSign;
+	/** 是否检测到路标 */
 	private boolean mDetected;
 	
 	public TrafficSignDetector() {
@@ -113,14 +128,27 @@ public class TrafficSignDetector {
 		this.mPaint.setStrokeWidth(1);
 	}
 	
+	/**
+	 * 更新原始图片数据
+	 * @param raw 原始图片数据
+	 */
 	public void updateRawBuffer(byte[] raw) {
 		this.mRawBuffer = raw;
 	}
 	
+	/**
+	 * 设置旋转角度
+	 * @param rotation 旋转角度
+	 */
 	public void setRotation(Rotation rotation) {
 		this.mRotation = rotation;
 	}
 	
+	/**
+	 * 设置图片大小
+	 * @param w
+	 * @param h
+	 */
 	public void setImageSize(int w, int h) {
 		this.mImageSize = new Size(w, h);
 		int size = w * h;
@@ -129,33 +157,57 @@ public class TrafficSignDetector {
 		}
 	}
 	
+	/**
+	 * 设置最小检测单元大小
+	 * @param minUnit
+	 */
 	public void setMinUnit(int minUnit) {
 		this.mMinUnit = minUnit;
 	}
 	
+	/**
+	 * 设置路标对象，此对象在检测到信息时予以更新。若未指定或指定为null，在检测到路标时会自动创建新对象。
+	 * @param sign
+	 */
 	public void setSign(TrafficSign sign) {
 		this.mDetectedSign = sign;
 	}
 	
-	public TrafficSign detectTrafficSign() {
+	/**
+	 * 检测路标，检测结果可以通过{@link #isSignDetected()}和{{@link #getDetectedSign()}函数取得。
+	 */
+	public void detectTrafficSign() {
+		// 计算阈值
 		this.mThreshold = this.getThresholdAndTransportData();
-//		this.convertMono(this.mThreshold);
+		// 检测图像定位模式
 		this.mDetected = this.detectCorner();
 		if (this.mDetected) {
+			// 找到图像定位模式时，计算路标图片映射用的矩阵
 			Matrix matrix = this.getMatrix(mCorners);
+			// 填充路标对象数据
 			this.fillSignData(matrix);
 		}
-		return this.mDetectedSign;
 	}
 	
+	/**
+	 * 取得路标
+	 * @return
+	 */
 	public TrafficSign getDetectedSign() {
 		return this.mDetectedSign;
 	}
 	
+	/**
+	 * 返回是否检测到路标
+	 * @return
+	 */
 	public boolean isSignDetected() {
 		return this.mDetected;
 	}
 	
+	/**
+	 * 初始化标准路标图形上的所有点
+	 */
 	private void initSignSrcPoints() {
 		int i = 0;
 		int lx = this.mSignSize.width * BLOCK_SIZE;
@@ -182,28 +234,22 @@ public class TrafficSignDetector {
 				int x = Math.round(this.mSignDstPoints[index << 1]);
 				int y = Math.round(this.mSignDstPoints[(index << 1) + 1]);
 				int monoIndex = x + y * ((this.mRotation.ordinal() & 0x01) == 0 ? this.mImageSize.width : this.mImageSize.height);
-				if (this.converAndGetMonoColor(monoIndex) == 0) {
+				if (this.isDark(monoIndex)) {
 					this.mDetectedSign.addPoint(sx, sy);
 				}
 			}
 			base += this.mSignSize.width;
 		}
-//		int maxIndex = this.mSignDstPoints.length >> 1;
-//		for (int base = 0; base < maxIndex; base += this.mSignSize.width) {
-//			for (int index = base; index < base + this.mSignSize.width; index++) {
-//				int x = Math.round(this.mSignDstPoints[index << 1]);
-//				int y = Math.round(this.mSignDstPoints[(index << 1) + 1]);
-//				int monoIndex = x + y * ((this.mRotation.ordinal() & 0x01) == 0 ? this.mImageSize.width : this.mImageSize.height);
-//				this.mSignBuffer[index] = this.converAndGetMonoColor(monoIndex);
-//			}
-//		}
 	}
 	
-	private int converAndGetMonoColor(int index) {
+
+	private boolean isDark(int index) {
+		boolean result = false;
 		if (index >= 0 && index < this.mInfoBuffer.length) {
-			return this.mInfoBuffer[index] = this.mInfoBuffer[index] >= this.mThreshold ? WHITE : BLACK;
+			result = this.mInfoBuffer[index] < this.mThreshold;
+			this.mInfoBuffer[index] = COLOR_MASK & (result ? Color.BLACK : Color.WHITE);
 		}
-		return WHITE;
+		return result;
 	}
 	
 	private boolean detectCorner() {
@@ -234,8 +280,7 @@ public class TrafficSignDetector {
 			for (int x = 0; x < w; x++) {
 				// 计算并取出纯黑白颜色。
 				int index = x + base;
-				int color = this.converAndGetMonoColor(index);
-				if (color == BLACK) {
+				if (this.isDark(index)) {
 					// 当前颜色为黑
 					if ((currentState & 0x01) == 1) {
 						// 奇数状态：我们正在计算白色像素数
@@ -462,8 +507,7 @@ public class TrafficSignDetector {
 			for (int i = 0; i < xs.length; i++) {
 				float cx = x + distance * size * xs[i];
 				float cy = y + distance * size * ys[i];
-				int color = this.converAndGetMonoColor(Math.round(cx) + Math.round(cy) * w);
-				if ((color == 0) != isBlack) {
+				if ((this.isDark(Math.round(cx) + Math.round(cy) * w)) != isBlack) {
 					return false;
 				}
 			}
@@ -496,8 +540,7 @@ public class TrafficSignDetector {
 	private int fillStateCountY(int w, int h, int cx, int cy, int[] stateCountY, int dir, int sizeLimit) {
 		int currentState = 2;
 		for (int y = cy; y < w && y >= 0; y += dir) {
-			int color = this.converAndGetMonoColor(cx + y * w);
-			if (color == 0) {
+			if (this.isDark(cx + y * w)) {
 				// 当前颜色黑色
 				if ((currentState & 0x01) == 1) {
                     // 奇数状态：我们正在计算白色像素数

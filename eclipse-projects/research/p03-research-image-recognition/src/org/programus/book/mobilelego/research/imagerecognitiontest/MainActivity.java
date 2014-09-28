@@ -11,55 +11,77 @@ import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.hardware.Camera;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.WindowManager;
 
 public class MainActivity extends Activity {
 	
+	/** 供相机预览用的SurfaceView */
 	private SurfaceView mCameraPreviewView;
 	
+	/** 相机预览器 */
 	private CameraPreviewer mPreviewer;
 	
+	/** 显示处理过程图像的SurfaceView对应的Holder */
 	private SurfaceHolder mImageHolder;
 	
-	private SurfaceView mSignView;
+	/** 显示检测出的路标的SurfaceView对应的Holder */
 	private SurfaceHolder mSignHolder;
 	
+	/** 路标检测器 */
 	private TrafficSignDetector mDetector;
-	private TrafficSign mSign;
 	
+	/** 绘制文字用的Paint */
 	private Paint mPaint;
+	/** 处理帧率 */
 	private float mFps;
 	
+	/** 已知路标和对应文字的对照表 */
 	private Map<TrafficSign, String> mSignMap = new HashMap<TrafficSign, String>();
 	
+	/** 处理相机预览时每帧数据的回调接口 */
 	private Camera.PreviewCallback mCamPrevCallback = new Camera.PreviewCallback() {
-		
 		private long time;
+		/* (non-Javadoc)
+		 * @see android.hardware.Camera.PreviewCallback#onPreviewFrame(byte[], android.hardware.Camera)
+		 */
 		@Override
 		public void onPreviewFrame(byte[] data, Camera camera) {
+			// 取得当前系统时间（单位：毫秒）
 			long now = System.currentTimeMillis();
+			// 计算帧率: 帧率 = 1000 / 本帧与上一帧之间的时间差
 			mFps = 1000f / (now - time);
+			// 更新时间
 			time = now;
 			if (mDetector != null) {
-				mDetector.updateRawBuffer(data, TrafficSignDetector.Rotation.Degree90);
+				// 将本帧图像数据传给检测器
+				mDetector.updateRawBuffer(data);
+				// 检测路标
 				mDetector.detectTrafficSign();
+				// 将存储图像数据的数组传给相机重用
 				camera.addCallbackBuffer(data);
-				drawMonoImage(mDetector);
+				// 绘制检测过程图像
+				drawInfoImage(mDetector);
+				// 绘制检测出的路标信息
 				drawDetectedSign(mDetector);
 			} else {
+				// 将存储图像数据的数组传给相机重用
 				camera.addCallbackBuffer(data);
 			}
 		}
 	};
 	
-	private void drawMonoImage(TrafficSignDetector sign) {
+	/**
+	 * 绘制检测信息
+	 * @param detector 检测器
+	 */
+	private void drawInfoImage(TrafficSignDetector detector) {
 		Canvas canvas = this.mImageHolder.lockCanvas();
 		if (canvas != null) {
 			try {
-				sign.drawMonoImage(canvas);
+				detector.drawInfoImage(canvas);
+				// 绘制帧率信息
 				canvas.drawText(String.format("FPS: %.2f", mFps), canvas.getWidth() >> 1, canvas.getHeight(), mPaint);
 			} finally {
 				this.mImageHolder.unlockCanvasAndPost(canvas);
@@ -67,12 +89,18 @@ public class MainActivity extends Activity {
 		}
 	}
 	
+	/**
+	 * 绘制检测出的路标，对已知路标，显示路标名称
+	 * @param detector 检测器
+	 */
 	private void drawDetectedSign(TrafficSignDetector detector) {
 		Canvas canvas = this.mSignHolder.lockCanvas();
 		if (canvas != null) {
 			try {
 				TrafficSign sign = detector.getDetectedSign();
+				// 绘制路标图形
 				sign.draw(canvas, !detector.isSignDetected());
+				// 绘制已知路标名称
 				this.drawKnownSign(canvas, sign);
 			} finally {
 				this.mSignHolder.unlockCanvasAndPost(canvas);
@@ -80,24 +108,37 @@ public class MainActivity extends Activity {
 		}
 	}
 	
+	/**
+	 * 绘制已知图标名称
+	 * @param canvas
+	 * @param sign
+	 */
 	private void drawKnownSign(Canvas canvas, TrafficSign sign) {
 		String signName = this.mSignMap.get(sign);
 		if (signName == null) {
+			// 当路标并非已知时，显示“未知”
 			signName = "未知";
 		}
 		
 		canvas.drawText(signName, canvas.getWidth() >> 1, canvas.getHeight() >> 1, mPaint);
 	}
 
+	/**
+	 * 初始化
+	 */
 	private void initComponents() {
 		this.mCameraPreviewView = (SurfaceView) this.findViewById(R.id.camera_preview);
 		this.mPreviewer = new CameraPreviewer();
+		// 设置预览用的SurfaceView
 		this.mPreviewer.setPreviewView(this.mCameraPreviewView);
+		// 设置处理预览图片的回调接口
 		this.mPreviewer.setPreviewCallback(this.mCamPrevCallback);
+		
 		SurfaceView imageView = (SurfaceView) this.findViewById(R.id.monochrome_image);
 		this.mImageHolder = imageView.getHolder();
-		this.mSignView = (SurfaceView) this.findViewById(R.id.sign);
-		this.mSignHolder = this.mSignView.getHolder();
+		SurfaceView signView = (SurfaceView) this.findViewById(R.id.sign);
+		this.mSignHolder = signView.getHolder();
+		// 设置路标显示区大小
 		this.mSignHolder.setFixedSize(TrafficSign.SIGN_EDGE_LEN * TrafficSignDetector.BLOCK_SIZE, TrafficSign.SIGN_EDGE_LEN * TrafficSignDetector.BLOCK_SIZE);
 		
 		this.mPaint = new Paint();
@@ -106,12 +147,16 @@ public class MainActivity extends Activity {
 		mPaint.setColor(0x7f00ff00);
 		
 		this.mDetector = new TrafficSignDetector();
-		this.mSign = new TrafficSign();
-		this.mDetector.setSign(this.mSign);
+		TrafficSign sign = new TrafficSign();
+		this.mDetector.setSign(sign);
+		
 		this.initKnownSign();
 		this.askCameraSize();
 	}
 	
+	/**
+	 * 初始化已知路标与名称对照表
+	 */
 	private void initKnownSign() {
 		this.mSignMap.put(new TrafficSign(
 				(short)0x000a, (short)0x0109, (short)0x010a, (short)0x010b, (short)0x0208, (short)0x0209, (short)0x020a, (short)0x020b, 
@@ -280,13 +325,13 @@ public class MainActivity extends Activity {
 				(short)0x1304, (short)0x1305, (short)0x1306, (short)0x1307, (short)0x1308, (short)0x1309, (short)0x130a, (short)0x130b, 
 				(short)0x130c, (short)0x130d, (short)0x130e, (short)0x130f, (short)0x1310, (short)0x1311, (short)0x1312, (short)0x1313
 			), "关机");
-		
-		for (Map.Entry<TrafficSign, String> e : this.mSignMap.entrySet()) {
-			System.out.printf("%s: %d\n", e.getValue(), e.getKey().hashCode());
-		}
 	}
 	
+	/**
+	 * 询问用户对所处理图片希望使用的分辨率。
+	 */
 	private void askCameraSize() {
+		// 取得所有可用分辨率
 		final List<Camera.Size> sizes = this.mPreviewer.getSupportedPreviewSizes();
 		String[] strSizes = new String[sizes.size()];
 		int i = 0;
@@ -295,21 +340,33 @@ public class MainActivity extends Activity {
 		}
 		AlertDialog.Builder builder = new AlertDialog.Builder(this);
 		AlertDialog dialog = builder.setTitle("Select size").setItems(strSizes, new DialogInterface.OnClickListener() {
+			/**
+			 * 选择后的处理
+			 */
 			@Override
 			public void onClick(DialogInterface dialog, int which) {
+				// 取得分辨率
 				Camera.Size size = sizes.get(which);
+				// 设置预览分辨率
 				mPreviewer.setPreviewSize(size);
+				// 开始预览
 				mPreviewer.startCameraPreview();
+				// 由于手机默认的相机方向是横向，旋转90度。
 				mPreviewer.setOrientation(CameraPreviewer.Orientation.Portraite);
+				// 设置预览区显示大小，由于旋转90度，长宽颠倒；同时设置大小为实际图像大小的1/16
 				mPreviewer.setDisplaySize(size.height >> 2, size.width >> 2);
+				// 设置信息显示区大小
 				mImageHolder.setFixedSize(size.height, size.width);
+				// 设置待检测图像大小
 				mDetector.setImageSize(size.height, size.width);
+				// 设置旋转90度
+				mDetector.setRotation(TrafficSignDetector.Rotation.Degree90);
+				// 设置最小检测宽度
 				mDetector.setMinUnit(5);
 			}
 		}).create();
-		Log.d(this.getClass().getName(), "Created size select dialog.");
+		
 		dialog.show();
-		Log.d(this.getClass().getName(), "Displayed size select dialog.");
 	}
 	
     @Override
@@ -322,14 +379,12 @@ public class MainActivity extends Activity {
 
 	@Override
 	protected void onPause() {
-		Log.d(this.getClass().getSimpleName(), "Paused");
 		super.onPause();
 		this.mPreviewer.stopCameraPreview();
 	}
 
 	@Override
 	protected void onResume() {
-		Log.d(this.getClass().getSimpleName(), "Resumed");
 		super.onResume();
 		this.mPreviewer.startCameraPreview();
 	}
