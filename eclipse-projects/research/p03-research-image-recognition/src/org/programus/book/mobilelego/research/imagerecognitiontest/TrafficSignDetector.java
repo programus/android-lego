@@ -10,7 +10,16 @@ import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
 
+/**
+ * 路标检测器。
+ * 
+ * @author programus
+ *
+ */
 public class TrafficSignDetector {
+	/**
+	 * 用来存储大小的类
+	 */
 	public static class Size {
 		public final int width;
 		public final int height;
@@ -34,6 +43,10 @@ public class TrafficSignDetector {
         }
 	}
 	
+	/**
+	 * 检测时图片的旋转角度。角度应该跟着预览方向变化。
+	 *
+	 */
 	public enum Rotation {
 		Degree0,
 		Degree90,
@@ -41,7 +54,9 @@ public class TrafficSignDetector {
 		Degree270
 	}
 	
+	/** 图片映射时，假设一个方块的边长 */
 	public static final int BLOCK_SIZE = 10;
+	/** 图片识别时，边角识别模式的个数 */
 	private static final int CORNER_COUNT = 4;
 	private static final int WHITE = 0xffffff;
 	private static final int BLACK = 0;
@@ -61,8 +76,8 @@ public class TrafficSignDetector {
 	private int mMinUnit = 1;
 	
 	private byte[] mRawBuffer;
+	private int[] mInfoBuffer;
 	private Rotation mRotation;
-	private int[] mMonoBuffer;
 	
 	private int[] mHistogram;
 	private int mThreshold;
@@ -98,16 +113,19 @@ public class TrafficSignDetector {
 		this.mPaint.setStrokeWidth(1);
 	}
 	
-	public void updateRawBuffer(byte[] raw, Rotation rotation) {
+	public void updateRawBuffer(byte[] raw) {
 		this.mRawBuffer = raw;
+	}
+	
+	public void setRotation(Rotation rotation) {
 		this.mRotation = rotation;
 	}
 	
 	public void setImageSize(int w, int h) {
 		this.mImageSize = new Size(w, h);
 		int size = w * h;
-		if (this.mMonoBuffer == null || size < this.mMonoBuffer.length) {
-			this.mMonoBuffer = new int[size];
+		if (this.mInfoBuffer == null || size < this.mInfoBuffer.length) {
+			this.mInfoBuffer = new int[size];
 		}
 	}
 	
@@ -182,8 +200,8 @@ public class TrafficSignDetector {
 	}
 	
 	private int converAndGetMonoColor(int index) {
-		if (index >= 0 && index < this.mMonoBuffer.length) {
-			return this.mMonoBuffer[index] = this.mMonoBuffer[index] >= this.mThreshold ? WHITE : BLACK;
+		if (index >= 0 && index < this.mInfoBuffer.length) {
+			return this.mInfoBuffer[index] = this.mInfoBuffer[index] >= this.mThreshold ? WHITE : BLACK;
 		}
 		return WHITE;
 	}
@@ -235,7 +253,7 @@ public class TrafficSignDetector {
 						if (currentState == 4) {
 							// 发现 黑白黑白黑 之后的白色，颜色模式匹配
 							// 检查颜色宽度比例并试图获取模式中心点
-							Point p = this.getPatternPoint(this.mMonoBuffer, w, h, x, y, mStateCountX, this.mCorners);
+							Point p = this.getPatternPoint(this.mInfoBuffer, w, h, x, y, mStateCountX, this.mCorners);
 							if (p != null) {
 								// 找到一个点
 								this.mCorners.add(p);
@@ -523,7 +541,7 @@ public class TrafficSignDetector {
 		for (int i = 0; i < wh; i++) {
 			int value = 0xff & this.mRawBuffer[i];
 			sum += value;
-			this.mMonoBuffer[i] = colorFromGs(value);
+			this.mInfoBuffer[i] = colorFromGs(value);
 			this.mHistogram[value]++;
 //			if (value <= m) {
 //				wl++;
@@ -615,7 +633,7 @@ public class TrafficSignDetector {
 		return (gs << 16) | (gs << 8) | gs;
 	}
 	
-	public void drawMonoImage(Canvas canvas) {
+	public void drawInfoImage(Canvas canvas) {
 		int w = this.mImageSize.width;
 		int h = this.mImageSize.height;
 		int tx = 0;
@@ -645,7 +663,7 @@ public class TrafficSignDetector {
 		canvas.save();
 		canvas.translate(tx, ty);
 		canvas.rotate(rotate);
-		canvas.drawBitmap(mMonoBuffer, 0, w, 0.f, 0.f, w, h, false, null);
+		canvas.drawBitmap(mInfoBuffer, 0, w, 0.f, 0.f, w, h, false, null);
 		
 		int[] colors = {Color.RED, Color.YELLOW, Color.GREEN, 0xffa0a0ff};
 		for (int i = 0; this.isSignDetected() && i < this.mCornerPoints.length; i += 2) {
