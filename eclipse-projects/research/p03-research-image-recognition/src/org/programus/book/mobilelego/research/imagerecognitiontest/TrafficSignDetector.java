@@ -54,8 +54,6 @@ public class TrafficSignDetector {
 		Degree270
 	}
 	
-	/** 图片映射时，假设一个方块的边长 */
-	public static final int BLOCK_SIZE = 10;
 	/** 图片识别时，边角识别模式的个数 */
 	private static final int CORNER_COUNT = 4;
 	/** 无透明度信息颜色的掩码 */
@@ -86,8 +84,12 @@ public class TrafficSignDetector {
 	
 	/** 四个角识别模式的坐标 */
 	private List<Point> mCorners;
-	/** 存储四个角坐标的数组，绘图用，中间变量 */
-	private float mCornerPoints[];
+	/** 标准路标中，四个定位点的坐标位置 */
+	private float mCornerSrcPoints[];
+	/** 存储四个角坐标的数组，计算映射用，中间变量 */
+	private float mCornerDstPoints[];
+	/** 映射用矩阵 */
+	private Matrix mMatrix;
 	/** 路标坐标映射源的点，即标准路标中的点，中间变量 */
 	private float mSignSrcPoints[];
 	/** 路标坐标映射目标的店，即实际图片中的点，中间变量 */
@@ -114,10 +116,16 @@ public class TrafficSignDetector {
 	/** 是否检测到路标 */
 	private boolean mDetected;
 	
+	/**
+	 * 构造函数
+	 */
 	public TrafficSignDetector() {
+		// 柱状图是针对所有灰度值的，灰度值为16进制0x00-0xff，共计0x100个数值
 		this.mHistogram = new int[0x100];
 		this.mCorners = new ArrayList<Point>(CORNER_COUNT);
-		this.mCornerPoints = new float[CORNER_COUNT << 1];
+		this.mCornerSrcPoints = this.getCornerSrcPoints();
+		this.mCornerDstPoints = new float[this.mCornerSrcPoints.length];
+		this.mMatrix = new Matrix();
 		this.mSignSrcPoints = new float[(this.mSignSize.height * this.mSignSize.width) << 1];
 		this.initSignSrcPoints();
 		this.mSignDstPoints = new float[this.mSignSrcPoints.length];
@@ -151,6 +159,7 @@ public class TrafficSignDetector {
 	 */
 	public void setImageSize(int w, int h) {
 		this.mImageSize = new Size(w, h);
+		// 根据图片大小重设图片信息存储区大小
 		int size = w * h;
 		if (this.mInfoBuffer == null || size < this.mInfoBuffer.length) {
 			this.mInfoBuffer = new int[size];
@@ -210,31 +219,58 @@ public class TrafficSignDetector {
 	 */
 	private void initSignSrcPoints() {
 		int i = 0;
-		int lx = this.mSignSize.width * BLOCK_SIZE;
-		int ly = this.mSignSize.height * BLOCK_SIZE;
-		for (int y = 0; y < ly; y += BLOCK_SIZE) {
-			for (int x = 0; x < lx; x += BLOCK_SIZE) {
+		int lx = this.mSignSize.width;
+		int ly = this.mSignSize.height;
+		for (int y = 0; y < ly; y++) {
+			for (int x = 0; x < lx; x++) {
 				this.mSignSrcPoints[i++] = x;
 				this.mSignSrcPoints[i++] = y;
 			}
 		}
 	}
 	
+	/**
+	 * 返回标准路标中定位点坐标
+	 * @return 定位点坐标
+	 */
+	private float[] getCornerSrcPoints() {
+		// 两个定位点之间的距离
+		float len = (TrafficSign.SIGN_EDGE_LEN + PATTERN_SIZE);
+		// 定位点偏离路标图形边缘的距离
+		float offset = (PATTERN_SIZE + 1) / 2.f;
+		return new float[]{
+			-offset, -offset, 				// 左上角
+			len - offset, -offset,			// 右上角
+			-offset, len - offset,			// 左下角
+			len - offset, len - offset		// 右下角
+		};
+	}
+	
+	/**
+	 * 填充路标数据
+	 * @param matrix 映射用矩阵
+	 */
 	private void fillSignData(Matrix matrix) {
+		// 根据情况创建新的路标实例或重置路标数据
 		if (this.mDetectedSign == null) {
 			this.mDetectedSign = new TrafficSign();
 		} else {
 			this.mDetectedSign.reset();
 		}
+		// 使用矩阵映射：标准路标中的点->实际图片中的点
 		matrix.mapPoints(mSignDstPoints, mSignSrcPoints);
+		// 循环所有点，检查亮度值
 		int base = 0;
 		for (int sy = 0; sy < this.mSignSize.height; sy++) {
 			for (int sx = 0; sx < this.mSignSize.width; sx++) {
 				int index = sx + base;
+				// 取得实际图片中的坐标值
 				int x = Math.round(this.mSignDstPoints[index << 1]);
 				int y = Math.round(this.mSignDstPoints[(index << 1) + 1]);
+				// 根据坐标值计算实际图片中的数据索引
 				int monoIndex = x + y * ((this.mRotation.ordinal() & 0x01) == 0 ? this.mImageSize.width : this.mImageSize.height);
 				if (this.isDark(monoIndex)) {
+					// 如果所在点是暗色，则加入路标数据中
 					this.mDetectedSign.addPoint(sx, sy);
 				}
 			}
@@ -242,17 +278,28 @@ public class TrafficSignDetector {
 		}
 	}
 	
-
+	/**
+	 * 判断指定索引的点是否为暗色（即转换成纯黑白图时，为黑色），同时将对应的点设置为黑白色。
+	 * @param index 图片数据索引
+	 * @return 为暗色时返回<code>true</code>
+	 */
 	private boolean isDark(int index) {
 		boolean result = false;
 		if (index >= 0 && index < this.mInfoBuffer.length) {
+			// 检查对应点的亮度是否低于阈值
 			result = this.mInfoBuffer[index] < this.mThreshold;
+			// 将对应点转换为黑白色，以供用户通过屏幕调试
 			this.mInfoBuffer[index] = COLOR_MASK & (result ? Color.BLACK : Color.WHITE);
 		}
 		return result;
 	}
 	
+	/**
+	 * 检测定位点。检测到的坐标将存储在{@link #mCorners}中，数值基于原始相机朝向，与旋转参数无关。
+	 * @return 检测到时为<code>true</code>
+	 */
 	private boolean detectCorner() {
+		// 根据相机朝向，调整w、h数值
 		int w = this.mImageSize.width;
 		int h = this.mImageSize.height;
 		if ((this.mRotation.ordinal() & 0x01) == 1) {
@@ -260,6 +307,7 @@ public class TrafficSignDetector {
 			h = this.mImageSize.width;
 		}
 		
+		// 重新检测前，清空旧数据
 		this.mCorners.clear();
 		int currentState = 0;
 		int scanStep = this.mMinUnit;
@@ -344,18 +392,29 @@ public class TrafficSignDetector {
 			}
 		}
 		
-//		System.out.printf("(%d, %d) - %d\n", w, h, this.mCorners.size());
-		
 		return this.mCorners.size() == CORNER_COUNT;
 	}
 	
+	/**
+	 * 推测下一个定位点的纵坐标值
+	 * @param corners 已找到的定位点
+	 * @param stateCount 当前的状态数据
+	 * @param y 当前的纵坐标
+	 * @param h 纵轴方向的高度
+	 * @return 推测出的下一个定位点的纵坐标值
+	 */
 	private int guessY(List<Point> corners, int[] stateCount, int y, int h) {
 		if (corners.size() >= CORNER_COUNT) {
+			// 如果已经找到了所有定位点，让纵坐标达到最大高度值，以跳出循环
 			y = h;
 		} else if (corners.size() >= (CORNER_COUNT >> 1)) {
+			// 如果已经找到了一半定位点，下一个点与第一个点的纵坐标差应约等于第二个点和第一个点的横坐标差
 			Point pa = corners.get(0);
+			// 计算前两点的横坐标差
 			int d = Math.abs(corners.get(1).x - pa.x);
+			// 新纵坐标为第一个点的纵坐标加上差，为保证不出现漏扫，退回相应的容错大小
 			int ny = pa.y + d - (int) ((stateCount[0] + stateCount[1]) * (1 + this.mVariance));
+			// 如果新纵坐标出现后退，则维持现状
 			if (ny > y) {
 				y = ny;
 			}
@@ -364,32 +423,42 @@ public class TrafficSignDetector {
 		return y;
 	}
 	
+	/**
+	 * 计算并取得映射用矩阵
+	 * @param corners 所有定位点
+	 * @return 映射用矩阵
+	 */
 	private Matrix getMatrix(List<Point> corners) {
-		Matrix matrix = new Matrix();
-		float len = BLOCK_SIZE * (TrafficSign.SIGN_EDGE_LEN + PATTERN_SIZE);
-		float offset = BLOCK_SIZE * (PATTERN_SIZE + 1) / 2.f;
-		float[] src = {
-			-offset, -offset, 
-			len - offset, -offset,
-			-offset, len - offset,
-			len - offset, len - offset
-		};
+		// 标准路径中的四个定位点坐标，按左上、右上、左下、右下的顺序排序
+		float[] src = this.mCornerSrcPoints;
+		// 实际图片中的四个定位点坐标
+		float[] dst = this.getArrangedCornerPoints(mCornerDstPoints);
 		
-		float[] dst = this.getArrangedCornerPoints(mCornerPoints);
-		
-		matrix.setPolyToPoly(src, 0, dst, 0, corners.size());
-		return matrix;
+		// 通过四个定位点来确定矩阵数据
+		mMatrix.setPolyToPoly(src, 0, dst, 0, corners.size());
+		return mMatrix;
 	}
 	
+	/**
+	 * 取得排列好的定位点坐标数据，数据顺序是左上、右上、左下、右下
+	 * @param points 用以存储排序后坐标数据的数组
+	 * @return 排列好的定位点坐标数据
+	 */
 	private float[] getArrangedCornerPoints(float[] points) {
-//		System.out.println(this.mCorners);
+		// 由于扫描是基于纵坐标由小到大进行，因此扫描结束后，
+		// 四个点是以纵坐标由小到大排序的。坐标是基于原始相机镜头方向的
+		
+		// 对四个点进行两次循环，
 		for (int i = 0; i < CORNER_COUNT; i += 2) {
+			// 每次循环取两个点比较它们的横坐标值，
+			// 横坐标较小的点向前排
 			Point pa = mCorners.get(i);
 			Point pb = mCorners.get(i + 1);
 			if (pa.x > pb.x) {
 				pa = mCorners.get(i + 1);
 				pb = mCorners.get(i);
 			}
+			// 根据旋转角度，计算对应的坐标点数组索引
 			int ia = i;
 			int ib = i + 1;
 			switch (mRotation) {
@@ -408,6 +477,7 @@ public class TrafficSignDetector {
 				ia = ib + 2;
 				break;
 			}
+			// 将坐标点赋值到数组中对应的元素
 			points[ia << 1] = pa.x;
 			points[(ia << 1) + 1] = pa.y;
 			points[ib << 1] = pb.x;
@@ -482,6 +552,15 @@ public class TrafficSignDetector {
 		return null;
 	}
 	
+	/**
+	 * 检查定位点模式是否符合规范。判断依据为取得固定的抽样点检查颜色，以确定确实为圆形模式。
+	 * @param w 图像宽度
+	 * @param h 图像高度
+	 * @param x 定位点横坐标
+	 * @param y 定位点纵坐标
+	 * @param size 整个模式的大小
+	 * @return
+	 */
 	private boolean isCirclePattern(int w, int h, int x, int y, float size) {
 		// 考察点与中心点的距离
 		// 分别为中心黑圆内、白环中央、黑环中央
@@ -502,9 +581,12 @@ public class TrafficSignDetector {
 			-0.8f, -0.6f
 		};
 		
+		// 不同距离上的黑白颜色不同，提前定义变量存储正确的颜色
 		boolean isBlack = true;
 		for (float distance : distances) {
+			// 对每个距离进行检查
 			for (int i = 0; i < xs.length; i++) {
+				// 循环检测每个距离上的8个点
 				float cx = x + distance * size * xs[i];
 				float cy = y + distance * size * ys[i];
 				if ((this.isDark(Math.round(cx) + Math.round(cy) * w)) != isBlack) {
@@ -537,6 +619,17 @@ public class TrafficSignDetector {
 		return true;
 	}
 	
+	/**
+	 * 填充纵坐标方向上的状态数据。坐标系基于相机原始坐标方向。
+	 * @param w 图像宽度
+	 * @param h 图像高度
+	 * @param cx 疑似识别点横坐标
+	 * @param cy 疑似识别点纵坐标
+	 * @param stateCountY 有待填充数值的纵坐标状态数据数组
+	 * @param dir 方向，-1为向上，1为向下
+	 * @param sizeLimit 扫描距离极限
+	 * @return 识别模式的边界处的纵坐标
+	 */
 	private int fillStateCountY(int w, int h, int cx, int cy, int[] stateCountY, int dir, int sizeLimit) {
 		int currentState = 2;
 		for (int y = cy; y < w && y >= 0; y += dir) {
@@ -574,6 +667,10 @@ public class TrafficSignDetector {
 		return -1;
 	}
 	
+	/**
+	 * 复制原始数据到图形信息区，并计算阈值
+	 * @return 阈值
+	 */
 	private int getThresholdAndTransportData() {
 		int w = this.mImageSize.width;
 		int h = this.mImageSize.height;
@@ -709,11 +806,11 @@ public class TrafficSignDetector {
 		canvas.drawBitmap(mInfoBuffer, 0, w, 0.f, 0.f, w, h, false, null);
 		
 		int[] colors = {Color.RED, Color.YELLOW, Color.GREEN, 0xffa0a0ff};
-		for (int i = 0; this.isSignDetected() && i < this.mCornerPoints.length; i += 2) {
+		for (int i = 0; this.isSignDetected() && i < this.mCornerDstPoints.length; i += 2) {
 			mPaint.setColor(colors[i >> 1 % colors.length]);
-			float x = this.mCornerPoints[i];
-			float y = this.mCornerPoints[i + 1];
-			canvas.drawCircle(this.mCornerPoints[i], this.mCornerPoints[i + 1], 10, mPaint);
+			float x = this.mCornerDstPoints[i];
+			float y = this.mCornerDstPoints[i + 1];
+			canvas.drawCircle(this.mCornerDstPoints[i], this.mCornerDstPoints[i + 1], 10, mPaint);
 			canvas.drawLine(x, y - 5, x, y + 5, mPaint);
 			canvas.drawLine(x - 5, y, x + 5, y, mPaint);
 //			System.out.printf("Draw: (%.0f,%.0f) - %x\n", x, y, mPaint.getColor());

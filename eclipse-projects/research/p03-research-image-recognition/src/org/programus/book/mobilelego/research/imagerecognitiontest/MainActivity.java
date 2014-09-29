@@ -139,11 +139,11 @@ public class MainActivity extends Activity {
 		SurfaceView signView = (SurfaceView) this.findViewById(R.id.sign);
 		this.mSignHolder = signView.getHolder();
 		// 设置路标显示区大小
-		this.mSignHolder.setFixedSize(TrafficSign.SIGN_EDGE_LEN * TrafficSignDetector.BLOCK_SIZE, TrafficSign.SIGN_EDGE_LEN * TrafficSignDetector.BLOCK_SIZE);
+		this.mSignHolder.setFixedSize(TrafficSign.SIGN_EDGE_LEN << 3, TrafficSign.SIGN_EDGE_LEN << 3);
 		
 		this.mPaint = new Paint();
 		mPaint.setTextAlign(Paint.Align.CENTER);
-		mPaint.setTextSize(50);
+		mPaint.setTextSize(32);
 		mPaint.setColor(0x7f00ff00);
 		
 		this.mDetector = new TrafficSignDetector();
