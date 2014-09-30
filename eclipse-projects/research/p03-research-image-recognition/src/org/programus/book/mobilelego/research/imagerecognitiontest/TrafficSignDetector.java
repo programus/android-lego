@@ -679,9 +679,12 @@ public class TrafficSignDetector {
 //		int wl = 0;
 //		int m = (this.mHistogram.length - 1) >> 1;
 		for (int i = 0; i < wh; i++) {
+			// 取得原始灰度值
 			int value = 0xff & this.mRawBuffer[i];
-			sum += value;
+			// 灰度信息转为颜色信息并赋值到图像信息区
 			this.mInfoBuffer[i] = colorFromGs(value);
+			// 计算确定阈值所需数据
+			sum += value;
 			this.mHistogram[value]++;
 //			if (value <= m) {
 //				wl++;
@@ -769,16 +772,26 @@ public class TrafficSignDetector {
 		return colorFromGs((threshold1 + threshold2) >> 1);
 	}
 	
+	/**
+	 * 将8位灰度数据转为24位颜色数据。
+	 * @param gs 灰度数据
+	 * @return 24位颜色数据
+	 */
 	private int colorFromGs(int gs) {
 		return (gs << 16) | (gs << 8) | gs;
 	}
 	
+	/**
+	 * 绘制图片信息
+	 * @param canvas 用来绘图的画布
+	 */
 	public void drawInfoImage(Canvas canvas) {
 		int w = this.mImageSize.width;
 		int h = this.mImageSize.height;
 		int tx = 0;
 		int ty = 0;
 		int rotate = 0;
+		// 根据角度计算画布旋转与移动数值
 		switch (this.mRotation) {
 		case Degree0:
 			break;
@@ -800,22 +813,40 @@ public class TrafficSignDetector {
 			h = this.mImageSize.width;
 			break;
 		}
+		// 保存画布状态
 		canvas.save();
+		// 移动画布
 		canvas.translate(tx, ty);
+		// 旋转画布
 		canvas.rotate(rotate);
+		// 绘制图片信息
 		canvas.drawBitmap(mInfoBuffer, 0, w, 0.f, 0.f, w, h, false, null);
-		
-		int[] colors = {Color.RED, Color.YELLOW, Color.GREEN, 0xffa0a0ff};
+		// 绘制定位点
+		this.drawCorners(canvas);
+		// 恢复保存过的画布状态
+		canvas.restore();
+	}
+	
+	/**
+	 * 绘制定位点。用带十字线的圈来标记定位点，定位点按顺序分别为红黄绿蓝
+	 * @param canvas 画布
+	 */
+	private void drawCorners(Canvas canvas) {
+		// 四个定位点的颜色
+		final int[] colors = {Color.RED, Color.YELLOW, Color.GREEN, 0xffa0a0ff};
+		// 圆圈半径
+		final int RADIUS = 10;
 		for (int i = 0; this.isSignDetected() && i < this.mCornerDstPoints.length; i += 2) {
-			mPaint.setColor(colors[i >> 1 % colors.length]);
+			// 取得颜色
+			mPaint.setColor(colors[(i >> 1) % colors.length]);
+			// 取得坐标
 			float x = this.mCornerDstPoints[i];
 			float y = this.mCornerDstPoints[i + 1];
-			canvas.drawCircle(this.mCornerDstPoints[i], this.mCornerDstPoints[i + 1], 10, mPaint);
-			canvas.drawLine(x, y - 5, x, y + 5, mPaint);
-			canvas.drawLine(x - 5, y, x + 5, y, mPaint);
-//			System.out.printf("Draw: (%.0f,%.0f) - %x\n", x, y, mPaint.getColor());
+			// 绘制圆圈
+			canvas.drawCircle(x, y, RADIUS, mPaint);
+			// 绘制十字线
+			canvas.drawLine(x, y - RADIUS, x, y + RADIUS, mPaint);
+			canvas.drawLine(x - RADIUS, y, x + RADIUS, y, mPaint);
 		}
-		
-		canvas.restore();
 	}
 }
