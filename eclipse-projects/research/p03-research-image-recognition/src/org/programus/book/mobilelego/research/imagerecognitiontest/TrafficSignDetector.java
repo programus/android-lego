@@ -676,8 +676,6 @@ public class TrafficSignDetector {
 		int h = this.mImageSize.height;
 		int wh = w * h;
 		long sum = 0;
-//		int wl = 0;
-//		int m = (this.mHistogram.length - 1) >> 1;
 		for (int i = 0; i < wh; i++) {
 			// 取得原始灰度值
 			int value = 0xff & this.mRawBuffer[i];
@@ -686,43 +684,9 @@ public class TrafficSignDetector {
 			// 计算确定阈值所需数据
 			sum += value;
 			this.mHistogram[value]++;
-//			if (value <= m) {
-//				wl++;
-//			}
 		}
-//		return this.getThreshold(this.mHistogram, m, wl, wh - wl);
 		return this.getThreshold(this.mHistogram, wh, sum);
 	}
-	
-//	/**
-//	 * 平衡柱状图算法计算黑白分割阈值
-//	 * @param histogram 灰度值柱状图信息
-//	 * @param m 初始中点
-//	 * @param wl 左边重量
-//	 * @param wr 右边重量
-//	 * @return 阈值
-//	 */
-//	private int getThreshold(int[] histogram, int m, int wl, int wr) {
-//		int s = 0;
-//		int e = histogram.length - 1;
-//		while (s <= e) {
-//			if (wr > wl) {
-//				wr -= histogram[e--];
-//				if (((s + e) >> 1) < m) {
-//					wr += histogram[m];
-//					wl -= histogram[m--];
-//				}
-//			} else {
-//				wl -= histogram[s++];
-//				if (((s + e) >> 1) > m) {
-//					wl += histogram[++m];
-//					wr -= histogram[m];
-//				}
-//			}
-//		}
-//		Arrays.fill(histogram, 0);
-//		return colorFromGs(m);
-//	}
 	
 	/**
 	 * 大津算法计算黑白分割阈值
