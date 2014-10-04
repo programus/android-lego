@@ -1,0 +1,9 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:context="org.programus.book.mobilelego.trafficsign.mobile.MainActivity" >
+    <item android:id="@+id/bt_connect" android:title="@string/connect" android:icon="@drawable/ic_action_bluetooth" android:showAsAction="always|withText"></item>
+    <item android:id="@+id/bt_connecting" android:title="@string/connecting" android:icon="@drawable/ic_action_bluetooth_searching" android:visible="false" android:showAsAction="always|withText" android:enabled="false"></item>
+    <item android:id="@+id/bt_disconnect" android:visible="false" android:title="@string/disconnect" android:showAsAction="always|withText" android:icon="@drawable/ic_action_bluetooth_connected"></item>
+    
+
+</menu>

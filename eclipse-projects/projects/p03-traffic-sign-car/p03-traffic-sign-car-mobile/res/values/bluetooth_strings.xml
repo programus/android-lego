@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="msg_bluetooth_not_supported">此设备不支持蓝牙！</string>
+    <string name="msg_bluetooth_is_necessary">此应用需要蓝牙支持。</string>
+    <string name="msg_bluetooth_pair_necessary">请首先与你的EV3进行配对。</string>
+    <string name="title_select_device">请选择设备：</string>
+    <string name="prompt_connect">↗ \n 点击 [连接]!</string>
+    <string name="connect">连接</string>
+    <string name="connecting">连接中#8230;</string>
+    <string name="disconnect">断开连接</string>
+</resources>

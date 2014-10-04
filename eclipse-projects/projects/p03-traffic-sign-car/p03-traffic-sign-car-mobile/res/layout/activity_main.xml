@@ -1,0 +1,78 @@
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:keepScreenOn="true"
+    tools:context="org.programus.book.mobilelego.robopet.mobile.MainActivity" >
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical" >
+
+            <SurfaceView
+                android:id="@+id/information_image"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal" />
+        </LinearLayout>
+    </ScrollView>
+
+	<SurfaceView
+	    android:id="@+id/camera_preview"
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:layout_gravity="left" />
+
+	<SurfaceView
+	    android:id="@+id/sign"
+	    android:layout_width="wrap_content"
+	    android:layout_height="wrap_content"
+	    android:layout_gravity="right" />
+
+	<RelativeLayout
+	    android:id="@+id/cover"
+	    android:layout_width="match_parent"
+	    android:layout_height="match_parent"
+	    android:background="@color/cover_color"
+	    android:clickable="true" >
+
+	    <TextView
+	        android:id="@+id/conn_prompt"
+	        android:layout_width="wrap_content"
+	        android:layout_height="wrap_content"
+	        android:layout_alignParentRight="true"
+	        android:layout_alignParentTop="true"
+	        android:layout_marginRight="@dimen/horizontal_padding"
+	        android:gravity="center_horizontal"
+	        android:text="@string/prompt_connect"
+	        android:textAppearance="?android:attr/textAppearanceLarge"
+	        android:textColor="@color/prompt_connect" />
+
+	    <TextView
+	        android:id="@+id/res_label"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_below="@id/conn_prompt"
+	        android:layout_marginBottom="@dimen/activity_vertical_margin"
+	        android:layout_marginLeft="@dimen/activity_horizontal_margin"
+	        android:layout_marginRight="@dimen/activity_horizontal_margin"
+	        android:layout_marginTop="@dimen/activity_vertical_margin"
+	        android:text="@string/select_res"
+	        android:textAppearance="?android:attr/textAppearanceMedium" />
+
+	    <Spinner
+	        android:id="@+id/res_list"
+	        android:layout_width="match_parent"
+	        android:layout_height="wrap_content"
+	        android:layout_below="@id/res_label"
+	        android:layout_marginLeft="@dimen/activity_horizontal_margin"
+	        android:layout_marginRight="@dimen/activity_horizontal_margin"
+	        android:prompt="@string/select_res" />
+	</RelativeLayout>
+
+</FrameLayout>
