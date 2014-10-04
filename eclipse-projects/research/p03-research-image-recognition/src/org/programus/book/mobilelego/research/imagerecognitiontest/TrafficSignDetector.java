@@ -687,7 +687,7 @@ public class TrafficSignDetector {
 		}
 		return this.getThreshold(this.mHistogram, wh, sum);
 	}
-	
+
 	/**
 	 * 大津算法计算黑白分割阈值
 	 * @param histogram 灰度值柱状图信息
@@ -696,15 +696,14 @@ public class TrafficSignDetector {
 	 * @return 阈值
 	 */
 	private int getThreshold(int[] histogram, int total, long sum) {
-		long sumB = 0;
+		long sB = 0;
 		long wB = 0;
 		long wF = 0;
 		double mB = 0;
 		double mF = 0;
 		double max = 0;
 		double between = 0;
-		int threshold1 = 0;
-		int threshold2 = 0;
+		int t = 0;
 		for (int i = 0; i < histogram.length; i++) {
 			wB += histogram[i];
 			int h = histogram[i];
@@ -719,23 +718,20 @@ public class TrafficSignDetector {
 				}
 				break;
 			}
-			sumB += h * i;
-			mB = (double) sumB / wB;
-			mF = (double) (sum - sumB) / wF;
+			sB += h * i;
+			mB = (double) sB / wB;
+			mF = (double) (sum - sB) / wF;
 			double d = mB - mF;
 			between = wB * wF * d * d;
-			if (between >= max) {
-				threshold1 = i;
-				if (between > max) {
-					threshold2 = i;
-					max = between;
-				}
+			if (between > max) {
+				t = i;
+				max = between;
 			}
 		}
 		
-		return colorFromGs((threshold1 + threshold2) >> 1);
+		return colorFromGs(t);
 	}
-	
+		
 	/**
 	 * 将8位灰度数据转为24位颜色数据。
 	 * @param gs 灰度数据
