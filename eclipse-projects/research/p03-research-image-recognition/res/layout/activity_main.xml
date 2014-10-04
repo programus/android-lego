@@ -1,34 +1,36 @@
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context=".MainActivity" >
 
-    <RelativeLayout
-        android:layout_width="match_parent"
+    <SurfaceView
+        android:id="@+id/sign"
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:orientation="vertical" >
+        android:layout_gravity="right" />
 
-        <SurfaceView
-            android:id="@+id/sign"
-            android:layout_width="wrap_content"
+    <SurfaceView
+        android:id="@+id/camera_preview"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" >
+
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_alignRight="@+id/monochrome_image"
-            android:layout_alignTop="@id/monochrome_image" />
+            android:orientation="vertical" >
 
-        <SurfaceView
-            android:id="@+id/camera_preview"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignLeft="@id/monochrome_image"
-            android:layout_alignTop="@id/monochrome_image" />
+            <SurfaceView
+                android:id="@+id/monochrome_image"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_gravity="center_horizontal" />
 
-        <SurfaceView
-            android:id="@id/monochrome_image"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true" />
+        </LinearLayout>
+    </ScrollView>
 
-    </RelativeLayout>
-
-</ScrollView>
+</FrameLayout>
