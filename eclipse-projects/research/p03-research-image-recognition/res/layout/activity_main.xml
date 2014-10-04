@@ -25,7 +25,7 @@
             android:orientation="vertical" >
 
             <SurfaceView
-                android:id="@+id/monochrome_image"
+                android:id="@+id/information_image"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_gravity="center_horizontal" />

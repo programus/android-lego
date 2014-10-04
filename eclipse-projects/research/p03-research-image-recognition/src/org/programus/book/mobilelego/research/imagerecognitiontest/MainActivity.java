@@ -134,7 +134,7 @@ public class MainActivity extends Activity {
 		// 设置处理预览图片的回调接口
 		this.mPreviewer.setPreviewCallback(this.mCamPrevCallback);
 		
-		SurfaceView imageView = (SurfaceView) this.findViewById(R.id.monochrome_image);
+		SurfaceView imageView = (SurfaceView) this.findViewById(R.id.information_image);
 		this.mImageHolder = imageView.getHolder();
 		SurfaceView signView = (SurfaceView) this.findViewById(R.id.sign);
 		this.mSignHolder = signView.getHolder();
