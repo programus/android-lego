@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.programus.book.mobilelego.trafficsign.comm.protocol.CarCommand;
+import org.programus.book.mobilelego.trafficsign.comm.protocol.CommandCompletedMessage;
 import org.programus.book.mobilelego.trafficsign.comm.protocol.ExitSignal;
 import org.programus.book.mobilelego.trafficsign.comm.protocol.NetMessage;
 import org.programus.book.mobilelego.trafficsign.comm.util.Communicator;
@@ -79,6 +80,16 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 	private CarCommand mCommand;
 	/** 命令正在处理中与否的标志 */
 	private boolean mProcessing;
+	/** 命令被机器人处理完后的通知消息处理员 */
+	private Processor<CommandCompletedMessage> mCmdCompletedProcessor = 
+			new Processor<CommandCompletedMessage> () {
+		@Override
+		public void process(CommandCompletedMessage msg,
+				Communicator communicator) {
+			// 通知已经处理完
+			mProcessing = false;
+		}
+	};
 	
 	
 	/** 选中的分辨率在支持分辨率中的所在位置 */
@@ -106,7 +117,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 	private float mFps;
 	
 	/** 已知路标和对应命令的对照表 */
-	private Map<TrafficSign, CarCommand.Command> mSignMap = new HashMap<TrafficSign, CarCommand.Command>();
+	private Map<TrafficSign, CarCommand.Command> mKnownSignMap = new HashMap<TrafficSign, CarCommand.Command>();
 	/** 路标文字数组 */
 	private String[] mCommands;
 	
@@ -129,6 +140,11 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				mDetector.updateRawBuffer(data);
 				// 检测路标
 				mDetector.detectTrafficSign();
+				// 如果检测到了路标
+				if (mDetector.isSignDetected()) {
+					// 发送命令
+					sendCarCommand(mDetector.getDetectedSign());
+				}
 				// 将存储图像数据的数组传给相机重用
 				camera.addCallbackBuffer(data);
 				// 绘制检测过程图像
@@ -141,6 +157,20 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 			}
 		}
 	};
+	
+	/**
+	 * 根据路标信息发送命令
+	 * @param sign 路标信息
+	 */
+	private void sendCarCommand(TrafficSign sign) {
+		// 对比已知路标，找出对应的路标
+		CarCommand.Command cmd = this.mKnownSignMap.get(sign);
+		if (cmd != null) {
+			this.mCommand.setCommand(cmd);
+			this.sendMessage(mCommand);
+			this.mProcessing = true;
+		}
+	}
 	
 	/**
 	 * 绘制检测信息
@@ -184,7 +214,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 	 * @param sign
 	 */
 	private void drawKnownSign(Canvas canvas, TrafficSign sign) {
-		CarCommand.Command cmd = this.mSignMap.get(sign);
+		CarCommand.Command cmd = this.mKnownSignMap.get(sign);
 		String signName = this.mCommands[cmd == null ? CarCommand.Command.values().length : cmd.ordinal()];
 		
 		canvas.drawText(signName, canvas.getWidth() >> 1, canvas.getHeight() >> 1, mPaint);
@@ -221,6 +251,8 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		
 		this.mCommands = this.getResources().getStringArray(R.array.commands);
 		
+		this.mCommand = new CarCommand();
+		
 		this.initKnownSign();
 		this.initCameraSizeAndMinUnit();
 	}
@@ -229,7 +261,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 	 * 初始化已知路标与名称对照表
 	 */
 	private void initKnownSign() {
-		this.mSignMap.put(new TrafficSign(
+		this.mKnownSignMap.put(new TrafficSign(
 				(short)0x000a, (short)0x0109, (short)0x010a, (short)0x010b, (short)0x0208, (short)0x0209, (short)0x020a, (short)0x020b, 
 				(short)0x020c, (short)0x0307, (short)0x0308, (short)0x0309, (short)0x030a, (short)0x030b, (short)0x030c, (short)0x030d, 
 				(short)0x0406, (short)0x0407, (short)0x0408, (short)0x0409, (short)0x040a, (short)0x040b, (short)0x040c, (short)0x040d, 
@@ -244,7 +276,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x110b, (short)0x110c, (short)0x1208, (short)0x1209, (short)0x120a, (short)0x120b, (short)0x120c, (short)0x1308, 
 				(short)0x1309, (short)0x130a, (short)0x130b, (short)0x130c
 			), CarCommand.Command.Forward);
-		this.mSignMap.put(new TrafficSign(
+		this.mKnownSignMap.put(new TrafficSign(
 				(short)0x0004, (short)0x0103, (short)0x0104, (short)0x0202, (short)0x0203, (short)0x0204, (short)0x0205, (short)0x0206, 
 				(short)0x0207, (short)0x0208, (short)0x0209, (short)0x020a, (short)0x020b, (short)0x020c, (short)0x020d, (short)0x020e, 
 				(short)0x020f, (short)0x0210, (short)0x0211, (short)0x0301, (short)0x0302, (short)0x0303, (short)0x0304, (short)0x0305, 
@@ -267,7 +299,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x120f, (short)0x1210, (short)0x1211, (short)0x1212, (short)0x1213, (short)0x130f, (short)0x1310, (short)0x1311, 
 				(short)0x1312, (short)0x1313
 			), CarCommand.Command.TurnLeft);
-		this.mSignMap.put(new TrafficSign(
+		this.mKnownSignMap.put(new TrafficSign(
 				(short)0x000f, (short)0x010f, (short)0x0110, (short)0x0202, (short)0x0203, (short)0x0204, (short)0x0205, (short)0x0206, 
 				(short)0x0207, (short)0x0208, (short)0x0209, (short)0x020a, (short)0x020b, (short)0x020c, (short)0x020d, (short)0x020e, 
 				(short)0x020f, (short)0x0210, (short)0x0211, (short)0x0301, (short)0x0302, (short)0x0303, (short)0x0304, (short)0x0305, 
@@ -290,7 +322,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x1200, (short)0x1201, (short)0x1202, (short)0x1203, (short)0x1204, (short)0x1300, (short)0x1301, (short)0x1302, 
 				(short)0x1303, (short)0x1304
 			), CarCommand.Command.TurnRight);
-		this.mSignMap.put(new TrafficSign(
+		this.mKnownSignMap.put(new TrafficSign(
 				(short)0x0007, (short)0x0008, (short)0x0009, (short)0x000a, (short)0x000b, (short)0x000c, (short)0x000d, (short)0x000e, 
 				(short)0x0106, (short)0x0107, (short)0x0108, (short)0x0109, (short)0x010a, (short)0x010b, (short)0x010c, (short)0x010d, 
 				(short)0x010e, (short)0x010f, (short)0x0205, (short)0x0206, (short)0x0207, (short)0x0208, (short)0x0209, (short)0x020a, 
@@ -318,7 +350,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x1204, (short)0x1205, (short)0x1206, (short)0x1207, (short)0x1208, (short)0x120e, (short)0x120f, (short)0x1210, 
 				(short)0x1304, (short)0x1305, (short)0x1306, (short)0x1307, (short)0x1308, (short)0x130f
 			), CarCommand.Command.TurnBack);
-		this.mSignMap.put(new TrafficSign(
+		this.mKnownSignMap.put(new TrafficSign(
 				(short)0x0008, (short)0x0009, (short)0x0107, (short)0x010a, (short)0x0205, (short)0x0206, (short)0x0207, (short)0x020a, 
 				(short)0x020b, (short)0x020c, (short)0x0304, (short)0x0307, (short)0x030a, (short)0x030d, (short)0x0404, (short)0x0407, 
 				(short)0x040a, (short)0x040d, (short)0x040e, (short)0x040f, (short)0x0504, (short)0x0507, (short)0x050a, (short)0x050d, 
@@ -331,7 +363,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x1204, (short)0x120e, (short)0x1305, (short)0x1306, (short)0x1307, (short)0x1308, (short)0x1309, (short)0x130a, 
 				(short)0x130b, (short)0x130c, (short)0x130d
 			), CarCommand.Command.Stop);
-		this.mSignMap.put(new TrafficSign(
+		this.mKnownSignMap.put(new TrafficSign(
 				(short)0x0004, (short)0x000f, (short)0x0103, (short)0x0104, (short)0x0105, (short)0x010e, (short)0x010f, (short)0x0110, 
 				(short)0x0202, (short)0x0203, (short)0x0204, (short)0x0205, (short)0x0206, (short)0x020d, (short)0x020e, (short)0x020f, 
 				(short)0x0210, (short)0x0211, (short)0x0301, (short)0x0302, (short)0x0303, (short)0x0304, (short)0x0305, (short)0x0306, 
@@ -363,7 +395,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x1104, (short)0x1105, (short)0x1106, (short)0x110d, (short)0x110e, (short)0x110f, (short)0x1110, (short)0x1111, 
 				(short)0x1203, (short)0x1204, (short)0x1205, (short)0x120e, (short)0x120f, (short)0x1210, (short)0x1304, (short)0x130f
 			), CarCommand.Command.Exit);
-		this.mSignMap.put(new TrafficSign(
+		this.mKnownSignMap.put(new TrafficSign(
 				(short)0x0008, (short)0x0009, (short)0x000a, (short)0x000b, (short)0x0108, (short)0x0109, (short)0x010a, (short)0x010b, 
 				(short)0x0208, (short)0x0209, (short)0x020a, (short)0x020b, (short)0x0300, (short)0x0301, (short)0x0302, (short)0x0303, 
 				(short)0x0304, (short)0x0305, (short)0x0308, (short)0x0309, (short)0x030a, (short)0x030b, (short)0x030e, (short)0x030f, 
@@ -541,6 +573,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 			public void onConnected(Communicator comm) {
 				try {
                     mComm = comm;
+                    mComm.addProcessor(CommandCompletedMessage.class, mCmdCompletedProcessor);
 					runOnUiThread(new Runnable() {
 						@Override
 						public void run() {
