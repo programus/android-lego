@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="commands">
+        <item >前进</item>
+        <item >左转</item>
+        <item >右转</item>
+        <item >掉头</item>
+        <item >停止</item>
+        <item >退出</item>
+        <item >关机</item>
+        <item >未知</item>
+    </string-array>
+    
+</resources>

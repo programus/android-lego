@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.programus.book.mobilelego.trafficsign.comm.protocol.CarCommand;
 import org.programus.book.mobilelego.trafficsign.comm.protocol.ExitSignal;
 import org.programus.book.mobilelego.trafficsign.comm.protocol.NetMessage;
 import org.programus.book.mobilelego.trafficsign.comm.util.Communicator;
@@ -40,7 +41,10 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ArrayAdapter;
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
 import android.widget.Spinner;
+import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity implements Processor<ExitSignal>{
@@ -51,6 +55,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 	private static final int MIN_UNIT = 5;
 	
 	private static final String SEL_SIZE_KEY = "SelectedSize";
+	private static final String MIN_UNIT_KEY = "MinUnit";
 	
 	private static enum BtConnectState {
 		Disconnected,
@@ -70,8 +75,16 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 	private ViewGroup mCover;
 	
 	
+	/** 待传输的命令 */
+	private CarCommand mCommand;
+	/** 命令正在处理中与否的标志 */
+	private boolean mProcessing;
+	
+	
 	/** 选中的分辨率在支持分辨率中的所在位置 */
 	private int mSelectedSizeIndex = -1;
+	/** 最小识别像素数 */
+	private int mMinUnit = MIN_UNIT;
 	/** 供相机预览用的SurfaceView */
 	private SurfaceView mCameraPreviewView;
 	
@@ -92,8 +105,10 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 	/** 处理帧率 */
 	private float mFps;
 	
-	/** 已知路标和对应文字的对照表 */
-	private Map<TrafficSign, String> mSignMap = new HashMap<TrafficSign, String>();
+	/** 已知路标和对应命令的对照表 */
+	private Map<TrafficSign, CarCommand.Command> mSignMap = new HashMap<TrafficSign, CarCommand.Command>();
+	/** 路标文字数组 */
+	private String[] mCommands;
 	
 	/** 处理相机预览时每帧数据的回调接口 */
 	private Camera.PreviewCallback mCamPrevCallback = new Camera.PreviewCallback() {
@@ -109,7 +124,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 			mFps = 1000f / (now - time);
 			// 更新时间
 			time = now;
-			if (mDetector != null) {
+			if (!mProcessing && mDetector != null) {
 				// 将本帧图像数据传给检测器
 				mDetector.updateRawBuffer(data);
 				// 检测路标
@@ -169,11 +184,8 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 	 * @param sign
 	 */
 	private void drawKnownSign(Canvas canvas, TrafficSign sign) {
-		String signName = this.mSignMap.get(sign);
-		if (signName == null) {
-			// 当路标并非已知时，显示“未知”
-			signName = "未知";
-		}
+		CarCommand.Command cmd = this.mSignMap.get(sign);
+		String signName = this.mCommands[cmd == null ? CarCommand.Command.values().length : cmd.ordinal()];
 		
 		canvas.drawText(signName, canvas.getWidth() >> 1, canvas.getHeight() >> 1, mPaint);
 	}
@@ -207,8 +219,10 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		// 设置最小检测宽度
 		this.mDetector.setMinUnit(MIN_UNIT);
 		
+		this.mCommands = this.getResources().getStringArray(R.array.commands);
+		
 		this.initKnownSign();
-		this.initCameraSize();
+		this.initCameraSizeAndMinUnit();
 	}
 	
 	/**
@@ -229,7 +243,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x1008, (short)0x1009, (short)0x100a, (short)0x100b, (short)0x100c, (short)0x1108, (short)0x1109, (short)0x110a, 
 				(short)0x110b, (short)0x110c, (short)0x1208, (short)0x1209, (short)0x120a, (short)0x120b, (short)0x120c, (short)0x1308, 
 				(short)0x1309, (short)0x130a, (short)0x130b, (short)0x130c
-			), "前进");
+			), CarCommand.Command.Forward);
 		this.mSignMap.put(new TrafficSign(
 				(short)0x0004, (short)0x0103, (short)0x0104, (short)0x0202, (short)0x0203, (short)0x0204, (short)0x0205, (short)0x0206, 
 				(short)0x0207, (short)0x0208, (short)0x0209, (short)0x020a, (short)0x020b, (short)0x020c, (short)0x020d, (short)0x020e, 
@@ -252,7 +266,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x1011, (short)0x1012, (short)0x1013, (short)0x110f, (short)0x1110, (short)0x1111, (short)0x1112, (short)0x1113, 
 				(short)0x120f, (short)0x1210, (short)0x1211, (short)0x1212, (short)0x1213, (short)0x130f, (short)0x1310, (short)0x1311, 
 				(short)0x1312, (short)0x1313
-			), "左转");
+			), CarCommand.Command.TurnLeft);
 		this.mSignMap.put(new TrafficSign(
 				(short)0x000f, (short)0x010f, (short)0x0110, (short)0x0202, (short)0x0203, (short)0x0204, (short)0x0205, (short)0x0206, 
 				(short)0x0207, (short)0x0208, (short)0x0209, (short)0x020a, (short)0x020b, (short)0x020c, (short)0x020d, (short)0x020e, 
@@ -275,7 +289,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x1002, (short)0x1003, (short)0x1004, (short)0x1100, (short)0x1101, (short)0x1102, (short)0x1103, (short)0x1104, 
 				(short)0x1200, (short)0x1201, (short)0x1202, (short)0x1203, (short)0x1204, (short)0x1300, (short)0x1301, (short)0x1302, 
 				(short)0x1303, (short)0x1304
-			), "右转");
+			), CarCommand.Command.TurnRight);
 		this.mSignMap.put(new TrafficSign(
 				(short)0x0007, (short)0x0008, (short)0x0009, (short)0x000a, (short)0x000b, (short)0x000c, (short)0x000d, (short)0x000e, 
 				(short)0x0106, (short)0x0107, (short)0x0108, (short)0x0109, (short)0x010a, (short)0x010b, (short)0x010c, (short)0x010d, 
@@ -303,7 +317,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x1106, (short)0x1107, (short)0x1108, (short)0x110d, (short)0x110e, (short)0x110f, (short)0x1110, (short)0x1111, 
 				(short)0x1204, (short)0x1205, (short)0x1206, (short)0x1207, (short)0x1208, (short)0x120e, (short)0x120f, (short)0x1210, 
 				(short)0x1304, (short)0x1305, (short)0x1306, (short)0x1307, (short)0x1308, (short)0x130f
-			), "掉头");
+			), CarCommand.Command.TurnBack);
 		this.mSignMap.put(new TrafficSign(
 				(short)0x0008, (short)0x0009, (short)0x0107, (short)0x010a, (short)0x0205, (short)0x0206, (short)0x0207, (short)0x020a, 
 				(short)0x020b, (short)0x020c, (short)0x0304, (short)0x0307, (short)0x030a, (short)0x030d, (short)0x0404, (short)0x0407, 
@@ -316,7 +330,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x0e00, (short)0x0e10, (short)0x0f01, (short)0x0f10, (short)0x1002, (short)0x1010, (short)0x1103, (short)0x110f, 
 				(short)0x1204, (short)0x120e, (short)0x1305, (short)0x1306, (short)0x1307, (short)0x1308, (short)0x1309, (short)0x130a, 
 				(short)0x130b, (short)0x130c, (short)0x130d
-			), "停止");
+			), CarCommand.Command.Stop);
 		this.mSignMap.put(new TrafficSign(
 				(short)0x0004, (short)0x000f, (short)0x0103, (short)0x0104, (short)0x0105, (short)0x010e, (short)0x010f, (short)0x0110, 
 				(short)0x0202, (short)0x0203, (short)0x0204, (short)0x0205, (short)0x0206, (short)0x020d, (short)0x020e, (short)0x020f, 
@@ -348,7 +362,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x100d, (short)0x100e, (short)0x100f, (short)0x1010, (short)0x1011, (short)0x1012, (short)0x1102, (short)0x1103, 
 				(short)0x1104, (short)0x1105, (short)0x1106, (short)0x110d, (short)0x110e, (short)0x110f, (short)0x1110, (short)0x1111, 
 				(short)0x1203, (short)0x1204, (short)0x1205, (short)0x120e, (short)0x120f, (short)0x1210, (short)0x1304, (short)0x130f
-			), "退出");
+			), CarCommand.Command.Exit);
 		this.mSignMap.put(new TrafficSign(
 				(short)0x0008, (short)0x0009, (short)0x000a, (short)0x000b, (short)0x0108, (short)0x0109, (short)0x010a, (short)0x010b, 
 				(short)0x0208, (short)0x0209, (short)0x020a, (short)0x020b, (short)0x0300, (short)0x0301, (short)0x0302, (short)0x0303, 
@@ -381,13 +395,13 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				(short)0x1210, (short)0x1211, (short)0x1212, (short)0x1213, (short)0x1300, (short)0x1301, (short)0x1302, (short)0x1303, 
 				(short)0x1304, (short)0x1305, (short)0x1306, (short)0x1307, (short)0x1308, (short)0x1309, (short)0x130a, (short)0x130b, 
 				(short)0x130c, (short)0x130d, (short)0x130e, (short)0x130f, (short)0x1310, (short)0x1311, (short)0x1312, (short)0x1313
-			), "关机");
+			), CarCommand.Command.Shutdown);
 	}
 	
 	/**
 	 * 询问用户对所处理图片希望使用的分辨率。
 	 */
-	private void initCameraSize() {
+	private void initCameraSizeAndMinUnit() {
 		// 取得所有可用分辨率
 		final List<Camera.Size> sizes = this.mPreviewer.getSupportedPreviewSizes();
 		// 按从大到小排序所有可用分辨率
@@ -400,6 +414,8 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		// 从保存内容中取出选择的位置
 		SharedPreferences pref = this.getPreferences(MODE_PRIVATE);
 		this.mSelectedSizeIndex = pref.getInt(SEL_SIZE_KEY, -1);
+		// 从保存内容中取出最小识别像素数
+		this.mMinUnit = pref.getInt(MIN_UNIT_KEY, MIN_UNIT);
 		// 创建用来显示的数组
 		String[] strSizes = new String[sizes.size()];
 		int i = 0;
@@ -412,6 +428,30 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		}
 		// 确定默认分辨率
 		final Camera.Size defaultSize = sizes.get(mSelectedSizeIndex);
+		
+		// 取得最小单元像素数设置条
+		final SeekBar minUnitBar = (SeekBar) this.findViewById(R.id.min_unit_bar);
+		// 取得显示最小单元像素数的文本框
+		final TextView minUnitText = (TextView) this.findViewById(R.id.min_unit_text);
+		// 设置条变化时的行为
+		minUnitBar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress,
+					boolean fromUser) {
+				mMinUnit = progress + 1;
+				mDetector.setMinUnit(mMinUnit);
+				minUnitText.setText(String.valueOf(mMinUnit));
+			}
+
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {
+			}
+
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar) {
+			}
+		});
+		
 		// 为Spinner创建适配器
 		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item, strSizes);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -428,6 +468,8 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				Camera.Size size = sizes.get(position);
 				// 设置分辨率
 				setSize(size);
+				// 设置最小像素数条
+				minUnitBar.setMax((Math.min(size.width, size.height) - 1) / (TrafficSign.SIGN_EDGE_LEN << 1));
 			}
 
 			@Override
@@ -439,6 +481,8 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		});
 		// 默认选择默认分辨率
 		spinner.setSelection(mSelectedSizeIndex);
+		// 默认最小像素数
+		minUnitBar.setProgress(mMinUnit - 1);
 	}
 	
 	/**
@@ -709,6 +753,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		this.mPreviewer.stopCameraPreview();
 		SharedPreferences.Editor editor = this.getPreferences(MODE_PRIVATE).edit();
 		editor.putInt(SEL_SIZE_KEY, this.mSelectedSizeIndex);
+		editor.putInt(MIN_UNIT_KEY, this.mMinUnit);
 		editor.commit();
 	}
 
