@@ -27,6 +27,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Canvas;
+import android.graphics.Color;
 import android.graphics.Paint;
 import android.hardware.Camera;
 import android.hardware.Camera.Size;
@@ -86,8 +87,10 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		@Override
 		public void process(CommandCompletedMessage msg,
 				Communicator communicator) {
-			// 通知已经处理完
-			mProcessing = false;
+			synchronized (MainActivity.this) {
+				// 通知已经处理完
+				mProcessing = false;
+			}
 		}
 	};
 	
@@ -115,6 +118,10 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 	private Paint mPaint;
 	/** 处理帧率 */
 	private float mFps;
+	/** 帧率输出格式 */
+	private String mFpsFormat;
+	/** 等待机器人处理的文字 */
+	private String mWaitProcess;
 	
 	/** 已知路标和对应命令的对照表 */
 	private Map<TrafficSign, CarCommand.Command> mKnownSignMap = new HashMap<TrafficSign, CarCommand.Command>();
@@ -145,15 +152,16 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 					// 发送命令
 					sendCarCommand(mDetector.getDetectedSign());
 				}
-				// 将存储图像数据的数组传给相机重用
-				camera.addCallbackBuffer(data);
-				// 绘制检测过程图像
-				drawInfoImage(mDetector);
+			}
+			
+			// 将存储图像数据的数组传给相机重用
+			camera.addCallbackBuffer(data);
+			// 绘制检测过程图像
+			drawInfoImage(mDetector);
+			
+			if (mDetector != null) {
 				// 绘制检测出的路标信息
 				drawDetectedSign(mDetector);
-			} else {
-				// 将存储图像数据的数组传给相机重用
-				camera.addCallbackBuffer(data);
 			}
 		}
 	};
@@ -166,9 +174,11 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		// 对比已知路标，找出对应的路标
 		CarCommand.Command cmd = this.mKnownSignMap.get(sign);
 		if (cmd != null) {
-			this.mCommand.setCommand(cmd);
-			this.sendMessage(mCommand);
-			this.mProcessing = true;
+			synchronized (this) {
+				this.mCommand.setCommand(cmd);
+				this.sendMessage(mCommand);
+				this.mProcessing = true;
+			}
 		}
 	}
 	
@@ -180,9 +190,16 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		Canvas canvas = this.mImageHolder.lockCanvas();
 		if (canvas != null) {
 			try {
-				detector.drawInfoImage(canvas);
-				// 绘制帧率信息
-				canvas.drawText(String.format("FPS: %.2f", mFps), canvas.getWidth() >> 1, canvas.getHeight(), mPaint);
+				if (this.mProcessing) {
+					// 等待命令被处理时，信息图涂黑
+					canvas.drawColor(Color.BLACK);
+					// 输出等待文字
+					canvas.drawText(this.mWaitProcess, canvas.getWidth() >> 1, canvas.getHeight() >> 1, mPaint);
+				} else if (detector != null) {
+					detector.drawInfoImage(canvas);
+					// 绘制帧率信息
+					canvas.drawText(String.format(this.mFpsFormat, mFps), canvas.getWidth() >> 1, canvas.getHeight(), mPaint);
+				}
 			} finally {
 				this.mImageHolder.unlockCanvasAndPost(canvas);
 			}	
@@ -242,6 +259,9 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		mPaint.setTextAlign(Paint.Align.CENTER);
 		mPaint.setTextSize(32);
 		mPaint.setColor(0x7f00ff00);
+		
+		this.mFpsFormat = this.getString(R.string.fps_format);
+		this.mWaitProcess = this.getString(R.string.wait_process);
 		
 		this.mDetector = new TrafficSignDetector();
 		TrafficSign sign = new TrafficSign();
@@ -574,6 +594,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 				try {
                     mComm = comm;
                     mComm.addProcessor(CommandCompletedMessage.class, mCmdCompletedProcessor);
+					mComm.addProcessor(ExitSignal.class, MainActivity.this);
 					runOnUiThread(new Runnable() {
 						@Override
 						public void run() {
@@ -596,7 +617,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 	private void sendMessage(NetMessage msg) {
 		if (this.mClient.isConnected() && this.mComm != null) {
 			this.mComm.send(msg);
-			Toast.makeText(this, "Command sended.", Toast.LENGTH_LONG).show();
+			Toast.makeText(this, String.format("Send: %s", msg.toString()), Toast.LENGTH_LONG).show();
 		}
 	}
 
