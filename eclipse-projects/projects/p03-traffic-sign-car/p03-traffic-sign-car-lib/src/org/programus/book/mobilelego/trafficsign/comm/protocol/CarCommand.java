@@ -37,4 +37,12 @@ public class CarCommand implements NetMessage {
 	public Command getCommand() {
 		return this.cmd;
 	}
+
+	/* (non-Javadoc)
+	 * @see java.lang.Object#toString()
+	 */
+	@Override
+	public String toString() {
+		return "CarCommand [cmd=" + cmd + "]";
+	}
 }
