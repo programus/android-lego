@@ -2,8 +2,13 @@ package org.programus.book.mobilelego.trafficsign.server.processor;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintStream;
 
 import lejos.hardware.Sound;
+import lejos.hardware.ev3.LocalEV3;
+import lejos.hardware.lcd.Font;
+import lejos.hardware.lcd.LCDOutputStream;
+import lejos.hardware.lcd.TextLCD;
 
 import org.programus.book.mobilelego.trafficsign.comm.protocol.CarCommand;
 import org.programus.book.mobilelego.trafficsign.comm.protocol.CommandCompletedMessage;
@@ -27,9 +32,13 @@ public class CommandProcessor implements Processor<CarCommand> {
 	/** 系统的关机命令 */
 	private static final String SHUTDOWN_CMD = "init 0";
 	private Car car;
+	private PrintStream out;
 	
 	public CommandProcessor(Car car) {
 		this.car = car;
+		TextLCD lcd = LocalEV3.get().getTextLCD(Font.getSmallFont());
+		lcd.clear();
+		out = new PrintStream(new LCDOutputStream(lcd));
 	}
 
 	@Override
@@ -39,6 +48,7 @@ public class CommandProcessor implements Processor<CarCommand> {
 		if (sndFile.exists()) {
 			Sound.playSample(SND_FILES[cmd.ordinal()], Sound.VOL_MAX);
 		}
+		out.println(cmd);
 		switch (cmd) {
 		case Forward:
 			car.forward();
