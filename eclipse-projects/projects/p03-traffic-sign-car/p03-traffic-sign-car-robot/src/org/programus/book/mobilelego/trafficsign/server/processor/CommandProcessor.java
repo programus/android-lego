@@ -66,7 +66,7 @@ public class CommandProcessor implements Processor<CarCommand> {
 			car.forward();
 			break;
 		case Stop:
-			car.stop();
+			car.stop(false);
 			break;
 		case Exit:
 			exit(communicator);

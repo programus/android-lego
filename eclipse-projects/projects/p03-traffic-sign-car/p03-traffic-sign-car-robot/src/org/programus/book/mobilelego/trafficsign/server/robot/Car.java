@@ -45,14 +45,18 @@ public class Car {
 		}
 	}
 	
-	public void stop() {
+	public void stop(boolean immediateReturn) {
 		for (RegulatedMotor m : this.wheelMotors) {
-			m.stop(false);
+			m.stop(true);
+		}
+		
+		while (!immediateReturn && this.isMoving()) {
+			Thread.yield();
 		}
 	}
 	
 	public void turn(int angle, boolean immediateReturn) {
-		this.stop();
+		this.stop(false);
 		int ra = angle * ANGULAR_RATE;
 		for (RegulatedMotor m : this.wheelMotors) {
 			m.rotate(ra, true);
