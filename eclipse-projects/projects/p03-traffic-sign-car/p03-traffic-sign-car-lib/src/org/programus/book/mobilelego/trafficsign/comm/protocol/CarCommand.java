@@ -30,6 +30,10 @@ public class CarCommand implements NetMessage {
 	
 	private Command cmd;
 	
+	public CarCommand(Command command) {
+		this.setCommand(command);
+	}
+	
 	public void setCommand(Command command) {
 		this.cmd = command;
 	}

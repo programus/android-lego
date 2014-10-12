@@ -77,8 +77,6 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 	private ViewGroup mCover;
 	
 	
-	/** 待传输的命令 */
-	private CarCommand mCommand;
 	/** 命令正在处理中与否的标志 */
 	private boolean mProcessing;
 	/** 命令被机器人处理完后的通知消息处理员 */
@@ -175,8 +173,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		CarCommand.Command cmd = this.mKnownSignMap.get(sign);
 		if (cmd != null) {
 			synchronized (this) {
-				this.mCommand.setCommand(cmd);
-				this.sendMessage(mCommand);
+				this.sendMessage(new CarCommand(cmd));
 				this.mProcessing = true;
 			}
 		}
@@ -270,8 +267,6 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		this.mDetector.setMinUnit(MIN_UNIT);
 		
 		this.mCommands = this.getResources().getStringArray(R.array.commands);
-		
-		this.mCommand = new CarCommand();
 		
 		this.initKnownSign();
 		this.initCameraSizeAndMinUnit();
@@ -718,6 +713,7 @@ public class MainActivity extends Activity implements Processor<ExitSignal>{
 		case Connected:
 			this.mCover.setVisibility(View.GONE);
 			this.mPreviewer.startCameraPreview();
+			this.mProcessing = false;
 			break;
 		case Disconnected:
 			this.mCover.setVisibility(View.VISIBLE);
