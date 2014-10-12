@@ -41,6 +41,7 @@ public class RoboCar {
 	public static void main(String[] args) {
 		// 取得机器人对象
 		final Car car = new Car();
+		car.setSpeed(300);
 		// 创建命令处理员对象
 		final CommandProcessor cmdProcessor = new CommandProcessor(car);
 		// 创建退出信号处理员对象
