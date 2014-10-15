@@ -1,12 +1,3 @@
-static class Box {
-  static int size;
-  int x, y;
-  Box(int x, int y) {
-    this.x = x;
-    this.y = y;
-  }
-}
-
 static class Pic {
   static int blockSize = 30;
   static color borderColor = #ff0000;
@@ -14,8 +5,10 @@ static class Pic {
   static color[] blockColors = {#000000, #ffffff};
   static color lineColor = #808080;
   static color textColor = #ff8000;
-  static color currColor = #ffe000;
-  static color prevColor = #000eff;
+  static color currColor = #80aa00;
+  static color prevColor = #4040cc;
+  static color currFillColor = 0x8080aa00;
+  static color prevFillColor = 0x808080ff;
   static color arrowColor = #3333ff;
   static float lineWeight = 1;
   static float currWeight = 2;
@@ -26,6 +19,7 @@ static class Pic {
   int[] blocks;
   int numStart;
   String name;
+  int curr;
   
   int w;
   int h;
@@ -33,9 +27,10 @@ static class Pic {
   int offsetY;
   PGraphics pg;
   
-  Pic(String name, int numStart, int[] blocks) {
+  Pic(String name, int numStart, int curr, int[] blocks) {
     this.name = name;
     this.numStart = numStart;
+    this.curr = curr;
     this.blocks = blocks;
   }
 }
@@ -92,7 +87,26 @@ void drawLines(Pic pic) {
   }
 }
 
+void drawBox(Pic pic, int index, boolean isCurr) {
+  if (index >= 0 && index < pic.w) {
+    float weight = isCurr ? Pic.currWeight : Pic.prevWeight;
+    float x = index * Pic.blockSize + weight / 2;
+    float y = weight / 2;
+    float u = Pic.blockSize - weight;
+    pic.pg.fill(isCurr ? Pic.currFillColor : Pic.prevFillColor);
+    pic.pg.stroke(isCurr ? Pic.currColor : Pic.prevColor);
+    pic.pg.strokeWeight(weight);
+    pic.pg.rect(x, y, u, u);
+    if (isCurr) {
+      pic.pg.line(x, y, x + u, y + u);
+      pic.pg.line(x + u, y, x, y + u);
+    }
+  }
+}
+
 void drawBoxes(Pic pic) {
+  drawBox(pic, pic.curr - 1, false);
+  drawBox(pic, pic.curr, true);
 }
 
 void drawText(Pic pic) {
@@ -148,9 +162,9 @@ void drawPic(Pic pic) {
 
 int picIndex;
 Pic[] pics = {
-  new Pic("../p03-bwbwb.gif", 2, new int[]{0, 4, 4, 4, 12, 4, 4, 4}),
-  new Pic("../p03-bwbwb-x.gif", 0, new int[]{0, 4, 4, 4, 12, 4, 4, 4}),
-  new Pic("../p03-bwbwb-0.gif", 0, new int[]{4, 4, 12, 4, 4, 6}),
+  new Pic("../p03-bwbwb.gif", 2, 20, new int[]{0, 4, 4, 4, 12, 4, 4, 4}),
+  new Pic("../p03-bwbwb-x.gif", 0, 3, new int[]{0, 4, 4, 4, 12, 4, 4, 4}),
+  new Pic("../p03-bwbwb-0.gif", 0, 8, new int[]{4, 4, 12, 4, 4, 6}),
 };
 color bg;
 
