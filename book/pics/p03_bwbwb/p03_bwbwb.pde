@@ -55,6 +55,10 @@ void setupSize(Pic pic) {
     h <<= 1;
   }
   
+  if (pic.curr > 0 && pic.curr <= w) {
+    pic.offsetY = pic.blockSize;
+  }
+  
   if (needExx) {
     pic.offsetX = Pic.blockSize;
   }
@@ -62,7 +66,7 @@ void setupSize(Pic pic) {
   pic.w = w;
   pic.h = h;
 
-  pic.pg = createGraphics(w * Pic.blockSize + pic.offsetX * 2 + 1, h * Pic.blockSize + (h != 1 ? Pic.arrowSize : 1));
+  pic.pg = createGraphics(w * Pic.blockSize + pic.offsetX * 2 + 1, h * Pic.blockSize + pic.offsetY + (needExy ? Pic.arrowSize : 1));
 }
 
 void drawBlocks(Pic pic) {
@@ -71,7 +75,7 @@ void drawBlocks(Pic pic) {
   pic.pg.noStroke();
   for (int w : pic.blocks) {
     pic.pg.fill(Pic.blockColors[colorIndex++ & 1]);
-    pic.pg.rect(Pic.blockSize * x + pic.offsetX, 0, Pic.blockSize * w, Pic.blockSize);
+    pic.pg.rect(Pic.blockSize * x + pic.offsetX, pic.offsetY, Pic.blockSize * w, Pic.blockSize);
     x += w;
   }
 }
@@ -80,18 +84,28 @@ void drawLines(Pic pic) {
   pic.pg.stroke(Pic.lineColor);
   pic.pg.strokeWeight(Pic.lineWeight);
   pic.pg.noFill();
-  pic.pg.rect(pic.offsetX, 0, pic.w * Pic.blockSize, Pic.blockSize);
+  pic.pg.rect(pic.offsetX, pic.offsetY, pic.w * Pic.blockSize, Pic.blockSize);
   for (int i = 1; i < pic.w; i++) {
     int x = i * Pic.blockSize + pic.offsetX;
-    pic.pg.line(x, 0, x, Pic.blockSize);
+    pic.pg.line(x, pic.offsetY, x, pic.offsetY + Pic.blockSize);
   }
+}
+
+float drawArrow(Pic pic, float x, float y, color c, boolean revert) {
+  pic.pg.noStroke();
+  pic.pg.fill(c);
+  pic.pg.triangle(
+    x, y, 
+    x - Pic.arrowSize * .2f, y + (revert ? -Pic.arrowSize : Pic.arrowSize), 
+    x + Pic.arrowSize * .2f, y + (revert ? -Pic.arrowSize : Pic.arrowSize));
+  return Pic.arrowSize * .7f;
 }
 
 void drawBox(Pic pic, int index, boolean isCurr) {
   if (index >= 0 && index < pic.w) {
     float weight = isCurr ? Pic.currWeight : Pic.prevWeight;
-    float x = index * Pic.blockSize + weight / 2;
-    float y = weight / 2;
+    float x = index * Pic.blockSize + weight / 2 + pic.offsetX;
+    float y = weight / 2 + pic.offsetY;
     float u = Pic.blockSize - weight;
     pic.pg.fill(isCurr ? Pic.currFillColor : Pic.prevFillColor);
     pic.pg.stroke(isCurr ? Pic.currColor : Pic.prevColor);
@@ -100,6 +114,22 @@ void drawBox(Pic pic, int index, boolean isCurr) {
     if (isCurr) {
       pic.pg.line(x, y, x + u, y + u);
       pic.pg.line(x + u, y, x, y + u);
+    } else {
+      x += u / 2;
+      y = pic.offsetY - 2 - drawArrow(pic, x, pic.offsetY, Pic.arrowColor, true);
+      pic.pg.fill(Pic.textColor);
+      int sum = 0;
+      int part = 0;
+      for (int i = 0; i < pic.blocks.length; i++) {
+        sum += pic.blocks[i];
+        if (index < sum) {
+          part = i - pic.numStart;
+          break;
+        }
+      }
+      pic.pg.textSize(Pic.blockSize * .5f);
+      pic.pg.textAlign(CENTER, BOTTOM);
+      pic.pg.text(String.format("currentState = %d", part), x, y);
     }
   }
 }
@@ -121,18 +151,13 @@ void drawText(Pic pic) {
       break;
     }
     if (i >= pic.numStart) {
-      float x = (start + w / 2.f) * Pic.blockSize + pic.offsetX;
+      float x = (start + w / 2.f) * Pic.blockSize;
       float y = Pic.blockSize;
       if (w == 0) {
-        pic.pg.fill(Pic.arrowColor);
-        pic.pg.triangle(
-          x, y, 
-          x - Pic.arrowSize * .2f, y + Pic.arrowSize, 
-          x + Pic.arrowSize * .2f, y + Pic.arrowSize);
-        y = y * 2 + Pic.arrowSize * .7f;
+        y = y * 2 + drawArrow(pic, x + pic.offsetX, y + pic.offsetY, Pic.arrowColor, false);
       }
       pic.pg.fill(Pic.textColor);
-      pic.pg.text(n, x, y);
+      pic.pg.text(n, x + pic.offsetX, y + pic.offsetY);
     }
     start += w;
   }
