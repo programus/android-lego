@@ -1,25 +1,26 @@
 static class Pic {
-  static int blockSize = 30;
+  static int blockSize = 30 * 4;
   static color borderColor = #ff0000;
   static color bgColor = #ffffff;
   static color[] blockColors = {#000000, #ffffff};
   static color lineColor = #808080;
   static color textColor = #ff8000;
-  static color currColor = #80aa00;
-  static color prevColor = #4040cc;
-  static color currFillColor = 0x8080aa00;
-  static color prevFillColor = 0x808080ff;
+  static color currColor = #00bbf7;
+  static color prevColor = #4ecf12;
+  static color currFillColor = 0x8000bbf7;
+  static color prevFillColor = 0x804ecf12;
   static color arrowColor = #3333ff;
-  static float lineWeight = 1;
-  static float currWeight = 2;
-  static float prevWeight = 2;
+  static float lineWeight = 1 * 4;
+  static float currWeight = 2 * 4;
+  static float prevWeight = 2 * 4;
   static int maxIndex = 5;
-  static int arrowSize = 10;
+  static int arrowSize = 10 * 4;
 
   int[] blocks;
   int numStart;
   String name;
   int curr;
+  boolean showState;
   
   int w;
   int h;
@@ -27,11 +28,12 @@ static class Pic {
   int offsetY;
   PGraphics pg;
   
-  Pic(String name, int numStart, int curr, int[] blocks) {
+  Pic(String name, int numStart, int curr, int[] blocks, boolean showState) {
     this.name = name;
     this.numStart = numStart;
     this.curr = curr;
     this.blocks = blocks;
+    this.showState = showState;
   }
 }
 
@@ -55,7 +57,7 @@ void setupSize(Pic pic) {
     h <<= 1;
   }
   
-  if (pic.curr > 0 && pic.curr <= w) {
+  if (pic.curr > 0 && pic.curr <= w && pic.showState) {
     pic.offsetY = pic.blockSize;
   }
   
@@ -114,7 +116,7 @@ void drawBox(Pic pic, int index, boolean isCurr) {
     if (isCurr) {
       pic.pg.line(x, y, x + u, y + u);
       pic.pg.line(x + u, y, x, y + u);
-    } else {
+    } else if (pic.showState) {
       x += u / 2;
       y = pic.offsetY - 2 - drawArrow(pic, x, pic.offsetY, Pic.arrowColor, true);
       pic.pg.fill(Pic.textColor);
@@ -128,7 +130,13 @@ void drawBox(Pic pic, int index, boolean isCurr) {
         }
       }
       pic.pg.textSize(Pic.blockSize * .5f);
+      String text = String.format("currentState = %d", part);
+      float tw = pic.pg.textWidth(text);
       pic.pg.textAlign(CENTER, BOTTOM);
+      if (x - tw / 2 < 0) {
+        pic.pg.textAlign(LEFT, BOTTOM);
+        x = 0;
+      }
       pic.pg.text(String.format("currentState = %d", part), x, y);
     }
   }
@@ -187,9 +195,23 @@ void drawPic(Pic pic) {
 
 int picIndex;
 Pic[] pics = {
-  new Pic("../p03-bwbwb.gif", 2, 20, new int[]{0, 4, 4, 4, 12, 4, 4, 4}),
-  new Pic("../p03-bwbwb-x.gif", 0, 3, new int[]{0, 4, 4, 4, 12, 4, 4, 4}),
-  new Pic("../p03-bwbwb-0.gif", 0, 8, new int[]{4, 4, 12, 4, 4, 6}),
+//  new Pic("../p03-bwbwb.gif", 2, -1, new int[]{0, 4, 4, 4, 12, 4, 4, 4}, false),
+//  new Pic("../p03-bwbwb-x.gif", 0, 3, new int[]{0, 4, 4, 4, 12, 4, 4, 4}, true),
+//  new Pic("../p03-bwbwb-0.gif", 0, 8, new int[]{4, 4, 12, 4, 4, 6}, false),
+//  new Pic("../p03-bwbwb-47-1.gif", 0, 8, new int[]{5, 5, 5, 5, 5}, true),
+//  new Pic("../p03-bwbwb-47-2.gif", 0, 15, new int[]{5, 5, 5, 5, 5}, true),
+  new Pic("../p03-fpf-b-1.gif", 0, 6, new int[]{3, 3, 9, 3, 3, 2}, true),
+  new Pic("../p03-fpf-b-3.gif", 0, 18, new int[]{3, 3, 9, 3, 3, 2}, true),
+  new Pic("../p03-fpf-b-0.gif", 0, 2, new int[]{3, 3, 9, 3, 3, 2}, true),
+  new Pic("../p03-fpf-b-2.gif", 0, 8, new int[]{3, 3, 9, 3, 3, 2}, true),
+  new Pic("../p03-fpf-b-4.gif", 0, 20, new int[]{3, 3, 9, 3, 3, 2}, true),
+  new Pic("../p03-fpf-w-1.gif", 0, 5, new int[]{3, 3, 9, 3, 3, 2}, true),
+  new Pic("../p03-fpf-w-3.gif", 0, 16, new int[]{3, 3, 9, 3, 3, 2}, true),
+  new Pic("../p03-fpf-w-0.gif", 0, 3, new int[]{3, 3, 9, 3, 3, 2}, true),
+  new Pic("../p03-fpf-w-2.gif", 0, 15, new int[]{3, 3, 9, 3, 3, 2}, true),
+  new Pic("../p03-fpf-w-4.gif", 0, 21, new int[]{3, 3, 9, 3, 3, 2}, true),
+//  new Pic("../p03-shift-1.gif", 0, 14, new int[]{2, 2, 2, 2, 6, 2, 2, 2}, true),
+//  new Pic("../p03-shift-2.gif", 2, 14, new int[]{2, 2, 2, 2, 6, 2, 2, 2}, true),
 };
 color bg;
 
