@@ -127,15 +127,12 @@ public class CameraPreviewer {
                 } catch (IOException e) {
                     Log.d(this.getClass().getName(), "Error when set preview display\n", e);
                 }
-//                this.mCamera.setPreviewCallback(mPreviewCallback);
                 this.mCamera.setPreviewCallbackWithBuffer(mPreviewCallback);
                 this.mCamera.addCallbackBuffer(mBuffer);
                 if (this.mOrientation == Orientation.Portraite) {
 	                this.mCamera.setDisplayOrientation(90);
                 }
-//                this.mCameraPreviewView.setVisibility(View.VISIBLE);
                 this.mCamera.startPreview();
-//                this.mCameraPreviewView.setVisibility(View.GONE);
                 Log.d(this.getClass().getSimpleName(), "Started Preview");
             }
 		}
