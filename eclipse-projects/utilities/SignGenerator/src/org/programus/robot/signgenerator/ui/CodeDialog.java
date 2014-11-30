@@ -24,6 +24,7 @@ public class CodeDialog extends JDialog {
 	
 	private enum Type {
 		TrafficSign("TrafficSign"),
+		String("String"), 
 		Int("int"),
 		Byte("byte"),
 		Boolean("boolean");
@@ -103,7 +104,7 @@ public class CodeDialog extends JDialog {
 				@SuppressWarnings("unchecked")
 				JComboBox<String> cb = (JComboBox<String>) e.getSource();
 				type = Type.values()[cb.getSelectedIndex()];
-				dimCb.setEnabled(type != Type.TrafficSign);
+				dimCb.setEnabled(type != Type.TrafficSign && type != Type.String);
 				resetTextArea();
 			}
 		});
@@ -123,30 +124,49 @@ public class CodeDialog extends JDialog {
 	private String generateCode() {
 		final int LF_MASK = 7;
 		String lf = System.getProperty("line.separator", "\n");
-		StringBuilder sb = new StringBuilder("new ");
-		sb.append(type.value);
-		if (type != Type.TrafficSign) {
+		StringBuilder sb = new StringBuilder();
+		switch (type) {
+		case String:
+			break;
+		default:
+			sb.append("new ");
+			sb.append(type.value);
+			break;
+		}
+		switch (type) {
+		case TrafficSign:
+			sb.append("(");
+			break;
+		case String:
+			break;
+		default:
 			sb.append("[]");
 			if (dim > 0) {
 				sb.append("[]");
 			}
 			sb.append(" {");
 			sb.append(lf);
-		} else {
-			sb.append("(");
+			break;
 		}
 		int n = this.data.getEdgeLen();
 		int count = 0;
 		for (int y = 0; y < n; y++) {
-			if (type != Type.TrafficSign) {
+			switch (type) {
+			case TrafficSign:
+			case String:
+				sb.append("\"");
+				break;
+			default:
 				if (dim > 0) {
 					sb.append("{");
 				}
 				sb.append("\t");
+				break;
 			}
 			for (int x = 0; x < n; x++) {
 				boolean b = this.data.isBlockBlack(x, y);
-				if (type == Type.TrafficSign) {
+				switch (type) {
+				case TrafficSign:
 					if (b) {
 						if ((count & LF_MASK) == 0) {
 							sb.append(lf);
@@ -155,38 +175,56 @@ public class CodeDialog extends JDialog {
 						sb.append(String.format("(short)0x%02x%02x, ", y, x));
 						count++;
 					}
-				} else {
-					if (type == Type.Boolean) {
-						sb.append(String.valueOf(b));
-					} else {
-						if (type == Type.Byte) {
-							sb.append("(byte)");
-						}
-						sb.append(b ? "0x00" : "0xff");
-					}
+					break;
+				case String:
+					sb.append(b ? '.' : ' ');
+					break;
+				case Boolean:
+					sb.append(String.valueOf(b));
 					if (x < n - 1) {
 						sb.append(", ");
 					}
+					break;
+				case Byte:
+					sb.append("(byte)");
+				case Int:
+					sb.append(b ? "0x00" : "0xff");
+					if (x < n - 1) {
+						sb.append(", ");
+					}
+					break;
 				}
 			}
 			if (type != Type.TrafficSign) {
-				if (dim > 0) {
-					sb.append("}");
-				}
-				if (y < n - 1) {
-					sb.append(", ");
+				if (type == Type.String) {
+					sb.append('\"');
+					if (y < n - 1) {
+						sb.append(" + ");
+					}
+				} else {
+					if (dim > 0) {
+						sb.append("}");
+					}
+					if (y < n - 1) {
+						sb.append(", ");
+					}
 				}
 				sb.append(lf);
 			}
 		}
-		if (type != Type.TrafficSign) {
-			sb.append("}");
-		} else {
+		switch (type) {
+		case String:
+			break;
+		case TrafficSign:
 			if (count > 0) {
 				sb.delete(sb.lastIndexOf(","), sb.length());
 				sb.append(lf);
 			}
 			sb.append(")");
+			break;
+		default:
+			sb.append("}");
+			break;
 		}
 		return sb.toString();
 	}

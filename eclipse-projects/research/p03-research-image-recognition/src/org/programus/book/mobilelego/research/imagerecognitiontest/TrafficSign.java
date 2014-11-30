@@ -36,15 +36,17 @@ public class TrafficSign {
 	
 	/**
 	 * 构造函数
-	 * @param data 点数据
+	 * @param data 路标数据
 	 */
-	public TrafficSign(short... data) {
+	public TrafficSign(String data) {
 		this();
-		for (short d : data) {
-			int x = d & X_MASK;
-			int y = d >> Y_SHIFT;
-			this.data.set(x + y * SIGN_EDGE_LEN);
-			this.bmp.setPixel(x, y, FG_COLOR);
+		for (int i = 0; i < data.length(); i++) {
+			if (data.charAt(i) != ' ') {
+				this.data.set(i);
+				int x = i % SIGN_EDGE_LEN;
+				int y = i / SIGN_EDGE_LEN;
+				this.bmp.setPixel(x, y, FG_COLOR);
+			}
 		}
 	}
 	
