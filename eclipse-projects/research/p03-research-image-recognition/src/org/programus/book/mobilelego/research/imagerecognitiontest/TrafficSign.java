@@ -16,11 +16,6 @@ import android.graphics.PorterDuff;
 public class TrafficSign {
 	/** 交通信号的边长 */
 	public final static byte SIGN_EDGE_LEN = 20;
-	
-	/** 横坐标掩码，由于使用一个short类型存储坐标，后8位为横坐标，所以掩码为0xff */
-	private final static int X_MASK = 0xff;
-	/** 纵坐标位移数，由于使用一个short类型存储坐标，前八位为纵坐标，所以位移数为8 */
-	private final static int Y_SHIFT = 8;
 	/** 前景色 */
 	private final int FG_COLOR = Color.BLACK;
 	/** 背景色 */
